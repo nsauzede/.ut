@@ -1,0 +1,259 @@
+#!/bin/bash
+
+utcalled=$_
+if [ $utcalled == $0 ]; then
+
+UT_VERSION="0.0.1"
+
+UTOPTHELP="--help"
+UTOPTVERSION="--version"
+UTOPTFAST="--fast"
+UTOPTVERBOSE="-v"
+UTOPTINCLUDE="-I"
+UTOPTPATH="-C"
+
+UTINIT="init"
+UTHELP="help"
+UTVERSION="version"
+UTCLEAN="clean"
+UTTEST="test"
+UTRETEST="retest"
+UTWATCH="watch"
+
+
+UTBIN=$0
+UTARG=$1
+
+if [ "x${UTARG}" = "xcomplete" ]; then
+    echo "$UTOPTHELP $UTOPTVERSION $UTOPTFAST $UTOPTVERBOSE $UTOPTINCLUDE $UTOPTPATH $UTINIT $UTHELP $UTVERSION $UTCLEAN $UTTEST $UTRETEST $UTWATCH"
+    exit 0
+fi
+
+UT=ut
+UTBINPATH=$(realpath `readlink ${UTBIN} || echo ${UTBIN}`)
+UTROOT=`dirname ${UTBINPATH}`
+
+UTMAKEFILE=${UTROOT}/Makefile
+
+SILENCEMAKE=--no-print-directory
+
+#echo "UTROOT=${UTROOT}"
+UT_INCLUDES=""
+# Default Project path, pkg, ...
+UT_PROJ=${PWD}
+UT_PKG=`basename ${UT_PROJ}`
+
+while true; do
+    case ${UTARG} in
+    ${UTOPTHELP}) :
+        DO_HELP=1
+        shift
+        ;;
+    ${UTOPTVERSION}) :
+        DO_VERSION=1
+        shift
+        ;;
+    ${UTOPTFAST}) :
+        UT_FAST=1
+        shift
+        ;;
+    ${UTOPTVERBOSE}) :
+        UT_VERBOSE=1
+        shift
+        ;;
+    ${UTOPTINCLUDE}) :
+        shift
+        UTARG=$1
+        case ${UTARG} in
+        "") :
+            echo "error: a value is required for '-I <DIRECTORY>' but none was supplied"
+            echo ""
+            echo "For more information, try '--help'."
+            exit 1
+            ;;
+        *) :
+            ;;
+        esac
+        UT_INCLUDES="${UT_INCLUDES}-I${UTARG} "
+        shift
+        ;;
+    ${UTOPTPATH}) :
+        shift
+        UTARG=$1
+        case ${UTARG} in
+        "") :
+            echo "error: a value is required for '-C <DIRECTORY>' but none was supplied"
+            echo ""
+            echo "For more information, try '--help'."
+            exit 1
+            ;;
+        *) :
+            ;;
+        esac
+        UT_PROJ="${UTARG}"
+        shift
+        ;;
+    *) :
+        UTARG=$1
+        break
+        ;;
+    esac
+    UTARG=$1
+done
+
+case ${UTARG} in
+${UTINIT}) :
+    DO_INIT=1
+    shift
+    ;;
+${UTVERSION}) :
+    DO_VERSION=1
+    shift
+    ;;
+${UTHELP}) :
+    DO_HELP=1
+    shift
+    ;;
+${UTCLEAN}) :
+    DO_CLEAN=1
+    shift
+    ;;
+${UTTEST}) :
+    DO_TEST=1
+    shift
+    ;;
+${UTRETEST}) :
+    DO_RETEST=1
+    shift
+    ;;
+"") :
+    DO_WATCH=1
+    ;;
+${UTWATCH}) :
+    DO_WATCH=1
+    shift
+    ;;
+*) :
+    echo "${UT}: unknown argument \"${UTARG}\""
+    echo "Run '${UT} ${UTOPTHELP}' for usage."
+    echo ""
+    exit 2
+    ;;
+esac
+
+if [ -n "${DO_HELP}" ]; then
+    echo -e "UT Unit Test tool"
+    echo -e ""
+    echo -e "Usage: ${UT} [OPTIONS] [COMMAND]"
+    echo -e ""
+    echo -e "Options:"
+    echo -e "      ${UTOPTVERSION}\t\tPrint version info and exit"
+    echo -e "      ${UTOPTHELP}\t\tPrint help"
+    echo -e "      ${UTOPTVERBOSE}\t\tIncrease verbosity"
+    echo -e "      ${UTOPTINCLUDE} <DIRECTORY>\tAdd include directory"
+    echo -e "      ${UTOPTPATH} <DIRECTORY>\tSet project PATH to DIRECTORY instead of default PWD"
+    echo -e ""
+    echo -e "Commands:"
+    echo -e "    ${UTCLEAN}\t\tClean everything"
+    echo -e "    ${UTTEST}\t\tRun the tests"
+    echo -e "    ${UTWATCH}\t\tContinuously run the tests (TDD-loop style)"
+    echo -e "    ${UTVERSION}\t\tPrint version info and exit"
+    echo -e "    ${UTHELP}\t\tPrint help"
+    echo -e ""
+    echo -e "See '${UT} ${UTHELP} <command>' for more information on a specific command."
+    exit 0
+elif [ -n "${DO_VERSION}" ]; then
+    echo "${UT} ${UT_VERSION}"
+    exit 0
+fi
+
+UTMK="ut.mk"
+UT_MK="${UT_PROJ}/${UTMK}"
+
+if [ -n "${DO_INIT}" ]; then
+    if [ -f ${UT_MK} ]; then
+        echo "Error: UT_PROJ=${UT_PROJ} directory already points to an existing ut project!"
+        exit 1
+    fi
+    echo "# ut project: \"${UT_PKG}\", from ut version ${UT_VERSION}" > ${UT_MK}
+    echo "" >> ${UT_MK}
+    if [ -n "${UT_INCLUDES}" ]; then
+        echo "UT_INCLUDES:=${UT_INCLUDES}" >> ${UT_MK}
+    else
+        echo "#UT_INCLUDES:=-I foo -I bar ..." >> ${UT_MK}
+    fi
+    if [ -n "${UT_FAST}" ]; then
+        echo "UT_FAST:=${UT_FAST}" >> ${UT_MK}
+    else
+        echo "#UT_FAST:=1" >> ${UT_MK}
+    fi
+    if [ -n "${UT_VERBOSE}" ]; then
+        echo "UT_VERBOSE:=${UT_VERBOSE}" >> ${UT_MK}
+    else
+        echo "#UT_VERBOSE:=1" >> ${UT_MK}
+    fi
+    echo -e "\tCreated ut project"
+    exit 0
+fi
+
+#echo "TESTING IF UT_PROJ=${UT_PROJ} directory is valid.."
+if [ ! -f "${UT_MK}" ]; then
+    while true; do
+        if [ -f "${UT_PROJ}/${UTMK}" ]; then
+            break
+        fi
+        if [ "${UT_PROJ}" = "/" ]; then
+            echo "error: could not find \`${UTMK}\` in \`${UT_PROJ}\` or any parent directory"
+            exit 1
+        fi
+        UT_PROJ=`dirname ${UT_PROJ}`
+    done
+fi
+
+#UTARGS="$*"
+
+if [ -n "${DO_CLEAN}" ]; then
+    UT_PROJ="${UT_PROJ}" UTO="${UTO}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" mrproper ${UTARGS}
+elif [ -n "${DO_TEST}" ]; then
+    UT_PROJ="${UT_PROJ}" UTO="${UTO}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" all ${UTARGS}
+elif [ -n "${DO_RETEST}" ]; then
+    UT_PROJ="${UT_PROJ}" UTO="${UTO}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" mrproper ${UTARGS}
+    UT_PROJ="${UT_PROJ}" UTO="${UTO}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" all ${UTARGS}
+elif [ -n "${DO_WATCH}" ]; then
+    #(cd ${UT_PROJ} ; UT_PROJ="${UT_PROJ}" UTO="${UTO}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" ${UTROOT}/watch.sh ${UTARGS})
+    UT_PROJ="${UT_PROJ}" UTO="${UTO}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" watch ${UTARGS}
+else
+    echo "Error: Nothing done ?!"
+    exit 1
+fi
+
+# End of normal case.
+
+else
+
+utbin=${BASH_SOURCE}
+utfull=$(realpath `readlink ${utbin} || echo ${utbin}`)
+utroot=`dirname ${utfull}`
+ut=ut
+utbinpath=${utroot}
+
+if [ -d "${utbinpath}" ] && [[ ":$PATH:" != *":${utbinpath}:"* ]]; then
+    PATH="${PATH:+"$PATH:"}${utbinpath}"
+fi
+
+_ut()
+{
+    local cur opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    opts=$(ut complete)
+    COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+    return 0
+}
+complete -o nospace -F _ut ${ut}
+
+unset utcalled utbin utfull utroot ut utbinpath
+
+# End of autocomplete case.
+
+fi
