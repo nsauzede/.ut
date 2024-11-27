@@ -79,11 +79,12 @@ endif
 # Add colored output for C compilers with lack thereof (eg: TCC)
 CCFILTER:=$(UTPATH)/ccolor.sh
 
+UT_CACHE:=.ut_cache
 -include ut.mk
 #$(error UT_INCLUDES=$(UT_INCLUDES))
-CFLAGS:=-Wall -Werror -pipe -I$(UTPATH)
+CFLAGS:=-Wall -Werror -pipe -I$(UTPATH) -DUT_CACHE=\"$(UT_CACHE)\"
 CFLAGS+=$(UT_INCLUDES) -I/
-CXXFLAGS:=-Wall -Werror -pipe -I$(UTPATH)
+CXXFLAGS:=-Wall -Werror -pipe -I$(UTPATH) -DUT_CACHE=\"$(UT_CACHE)\"
 CXXFLAGS+=$(UT_INCLUDES) -I/
 
 AT_:=@
@@ -96,31 +97,30 @@ SILENCEMAKE:=$(SILENCEMAKE_$(V))
 
 C_TESTS:=$(shell find . -name \*.c -exec grep -l "#include .*ut.h" '{}' \;)
 CPP_TESTS:=$(shell find . -name \*.cpp -exec grep -l "#include .*ut.h" '{}' \;)
-TARGET:=.ut_cache
 DEPS:=
-DEPS+=$(patsubst %,$(TARGET)/%.d,$(C_TESTS))
-DEPS+=$(patsubst %,$(TARGET)/%.d,$(CPP_TESTS))
+DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(C_TESTS))
+DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(CPP_TESTS))
 
 EXES:=
 PASSED_FAST:=
 PASSED_SLOW:=
 
 ifdef CC_FAST
-EXES+=$(patsubst %,$(TARGET)/%.fast.exe,$(C_TESTS))
-PASSED_FAST+=$(patsubst %,$(TARGET)/%.fast.passed,$(C_TESTS))
+EXES+=$(patsubst %,$(UT_CACHE)/%.fast.exe,$(C_TESTS))
+PASSED_FAST+=$(patsubst %,$(UT_CACHE)/%.fast.passed,$(C_TESTS))
 endif
 ifdef CXX_FAST
-EXES+=$(patsubst %,$(TARGET)/%.fast.exe,$(CPP_TESTS))
-PASSED_FAST+=$(patsubst %,$(TARGET)/%.fast.passed,$(CPP_TESTS))
+EXES+=$(patsubst %,$(UT_CACHE)/%.fast.exe,$(CPP_TESTS))
+PASSED_FAST+=$(patsubst %,$(UT_CACHE)/%.fast.passed,$(CPP_TESTS))
 endif
 
 ifdef CC_SLOW
-EXES+=$(patsubst %,$(TARGET)/%.slow.exe,$(C_TESTS))
-PASSED_SLOW+=$(patsubst %,$(TARGET)/%.slow.passed,$(C_TESTS))
+EXES+=$(patsubst %,$(UT_CACHE)/%.slow.exe,$(C_TESTS))
+PASSED_SLOW+=$(patsubst %,$(UT_CACHE)/%.slow.passed,$(C_TESTS))
 endif
 ifdef CXX_SLOW
-EXES+=$(patsubst %,$(TARGET)/%.slow.exe,$(CPP_TESTS))
-PASSED_SLOW+=$(patsubst %,$(TARGET)/%.slow.passed,$(CPP_TESTS))
+EXES+=$(patsubst %,$(UT_CACHE)/%.slow.exe,$(CPP_TESTS))
+PASSED_SLOW+=$(patsubst %,$(UT_CACHE)/%.slow.passed,$(CPP_TESTS))
 endif
 
 ifdef VALGRIND
@@ -149,58 +149,58 @@ watch:
 fast: $(PASSED_FAST)
 slow: $(PASSED_SLOW)
 
-$(TARGET):
+$(UT_CACHE):
 	$(AT)$(MKDIR) -p $@ && \
-	echo "# Created by ut automatically.\n*" > $(TARGET)/.gitignore && \
-	echo "Signature: 8a477f597d28d172789f06886806bc55" > $(TARGET)/CACHEDIR.TAG && \
-	echo "# This file is a cache directory tag created by ut." >> $(TARGET)/CACHEDIR.TAG && \
-	echo "# For information about cache directory tags, see https://bford.info/cachedir/" >> $(TARGET)/CACHEDIR.TAG && \
-	echo "# ut cache directory #" > $(TARGET)/README.md && \
-	echo "" >> $(TARGET)/README.md && \
-	echo "This directory contains data from ut." >> $(TARGET)/README.md && \
-	echo "" >> $(TARGET)/README.md && \
-	echo "**Do not** commit this to version control." >> $(TARGET)/README.md && \
-	echo "" >> $(TARGET)/README.md && \
-	echo "See [the docs](https://github.com/nsauzede/ut_/blob/main/README.md) for more information." >> $(TARGET)/README.md
+	echo "# Created by ut automatically.\n*" > $(UT_CACHE)/.gitignore && \
+	echo "Signature: 8a477f597d28d172789f06886806bc55" > $(UT_CACHE)/CACHEDIR.TAG && \
+	echo "# This file is a cache directory tag created by ut." >> $(UT_CACHE)/CACHEDIR.TAG && \
+	echo "# For information about cache directory tags, see https://bford.info/cachedir/" >> $(UT_CACHE)/CACHEDIR.TAG && \
+	echo "# ut cache directory #" > $(UT_CACHE)/README.md && \
+	echo "" >> $(UT_CACHE)/README.md && \
+	echo "This directory contains data from ut." >> $(UT_CACHE)/README.md && \
+	echo "" >> $(UT_CACHE)/README.md && \
+	echo "**Do not** commit this to version control." >> $(UT_CACHE)/README.md && \
+	echo "" >> $(UT_CACHE)/README.md && \
+	echo "See [the docs](https://github.com/nsauzede/ut_/blob/main/README.md) for more information." >> $(UT_CACHE)/README.md
 
-$(TARGET)/%.c.d: $(TARGET) %.c
+$(UT_CACHE)/%.c.d: $(UT_CACHE) %.c
 	$(AT)$(MKDIR) -p $(@D) && \
-	($(CC) -MM $(CFLAGS) $*.c > $@.orig 2>&1 || (cat $@.orig | $(CCFILTER) ; $(RM) $@.orig ; false) && (cat $@.orig | sed ':a;N;$$!ba;s/\\\n//g' > $@ ; echo "$(TARGET)/$*.c.fast.exe $(TARGET)/$*.c.slow.exe:" `cat $@ | cut -d':' -f2` > $@ ; $(RM) $@.orig))
+	($(CC) -MM $(CFLAGS) $*.c > $@.orig 2>&1 || (cat $@.orig | $(CCFILTER) ; $(RM) $@.orig ; false) && (cat $@.orig | sed ':a;N;$$!ba;s/\\\n//g' > $@ ; echo "$(UT_CACHE)/$*.c.fast.exe $(UT_CACHE)/$*.c.slow.exe:" `cat $@ | cut -d':' -f2` > $@ ; $(RM) $@.orig))
 
-$(TARGET)/%.cpp.d: $(TARGET) %.cpp
+$(UT_CACHE)/%.cpp.d: $(UT_CACHE) %.cpp
 	$(AT)$(MKDIR) -p $(@D) && \
-	($(CXX) -MM $(CFLAGS) $*.cpp | sed ':a;N;$$!ba;s/\\\n//g' > $@ 2>&1 || (cat $@ ; $(RM) $@ ; false) && (echo "$(TARGET)/$*.cpp.fast.exe $(TARGET)/$*.cpp.slow.exe:" `cat $@ | cut -d':' -f2` > $@))
+	($(CXX) -MM $(CFLAGS) $*.cpp | sed ':a;N;$$!ba;s/\\\n//g' > $@ 2>&1 || (cat $@ ; $(RM) $@ ; false) && (echo "$(UT_CACHE)/$*.cpp.fast.exe $(UT_CACHE)/$*.cpp.slow.exe:" `cat $@ | cut -d':' -f2` > $@))
 
 .INTERMEDIATE: $(EXES)
 
 BUILD_C_EXE=$(AT)($(CC) $*.c -o $@ $(CFLAGS) $(LDFLAGS) > $@.build 2>&1 || (cat $@.build | $(CCFILTER) ; $(RM) $@.build ; false) && $(RM) $@.build)
-$(TARGET)/%.c.fast.exe: %.c ; $(BUILD_C_EXE)
-$(TARGET)/%.c.slow.exe: %.c ; $(BUILD_C_EXE)
+$(UT_CACHE)/%.c.fast.exe: %.c ; $(BUILD_C_EXE)
+$(UT_CACHE)/%.c.slow.exe: %.c ; $(BUILD_C_EXE)
 
 BUILD_CPP_EXE=$(AT)$(CXX) $*.cpp -o $@ $(CXXFLAGS) $(LDFLAGS)
-$(TARGET)/%.cpp.fast.exe: %.cpp ; $(BUILD_CPP_EXE)
-$(TARGET)/%.cpp.slow.exe: %.cpp ; $(BUILD_CPP_EXE)
+$(UT_CACHE)/%.cpp.fast.exe: %.cpp ; $(BUILD_CPP_EXE)
+$(UT_CACHE)/%.cpp.slow.exe: %.cpp ; $(BUILD_CPP_EXE)
 
 TEST_FAST_PASSED=$(AT)./$< $(UTO) && touch $@
-$(TARGET)/%.c.fast.passed: CC=$(CC_FAST)
-$(TARGET)/%.c.fast.passed: CFLAGS+=-O0
-$(TARGET)/%.c.fast.passed: $(TARGET)/%.c.fast.exe ; $(TEST_FAST_PASSED)
+$(UT_CACHE)/%.c.fast.passed: CC=$(CC_FAST)
+$(UT_CACHE)/%.c.fast.passed: CFLAGS+=-O0
+$(UT_CACHE)/%.c.fast.passed: $(UT_CACHE)/%.c.fast.exe ; $(TEST_FAST_PASSED)
 
 TEST_SLOW_PASSED=$(AT)$(VG) ./$< $(UTO) && touch $@
-$(TARGET)/%.c.slow.passed: CC=$(CC_SLOW)
-$(TARGET)/%.c.slow.passed: CFLAGS+=-g
-$(TARGET)/%.c.slow.passed: $(TARGET)/%.c.slow.exe ; $(TEST_SLOW_PASSED)
+$(UT_CACHE)/%.c.slow.passed: CC=$(CC_SLOW)
+$(UT_CACHE)/%.c.slow.passed: CFLAGS+=-g
+$(UT_CACHE)/%.c.slow.passed: $(UT_CACHE)/%.c.slow.exe ; $(TEST_SLOW_PASSED)
 
-$(TARGET)/%.cpp.fast.passed: CXX=$(CXX_FAST)
-$(TARGET)/%.cpp.fast.passed: CXXFLAGS+=-O0
-$(TARGET)/%.cpp.fast.passed: $(TARGET)/%.cpp.fast.exe ; $(TEST_FAST_PASSED)
+$(UT_CACHE)/%.cpp.fast.passed: CXX=$(CXX_FAST)
+$(UT_CACHE)/%.cpp.fast.passed: CXXFLAGS+=-O0
+$(UT_CACHE)/%.cpp.fast.passed: $(UT_CACHE)/%.cpp.fast.exe ; $(TEST_FAST_PASSED)
 
-$(TARGET)/%.cpp.slow.passed: CXX=$(CXX_SLOW)
-$(TARGET)/%.cpp.slow.passed: CXXFLAGS+=-g
-$(TARGET)/%.cpp.slow.passed: $(TARGET)/%.cpp.slow.exe ; $(TEST_SLOW_PASSED)
+$(UT_CACHE)/%.cpp.slow.passed: CXX=$(CXX_SLOW)
+$(UT_CACHE)/%.cpp.slow.passed: CXXFLAGS+=-g
+$(UT_CACHE)/%.cpp.slow.passed: $(UT_CACHE)/%.cpp.slow.exe ; $(TEST_SLOW_PASSED)
 
 mrproper:
-	$(AT)$(RM) -rf $(TARGET)
+	$(AT)$(RM) -rf $(UT_CACHE)
 
 ifneq ($(MAKECMDGOALS),mrproper)
 include $(DEPS)

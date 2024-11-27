@@ -240,6 +240,10 @@ int ut_main_(int argc, char *argv[]) {
 #endif
     ;
     printf("platform %s -- %s, language %s, %s %d.%d.%d\n", platform, argv[0], language, compiler.name, compiler.major, compiler.minor, compiler.extra);
+#ifdef UT_CACHE
+    const char *ut_cache = UT_CACHE;
+    printf("cachedir: %s\n", ut_cache);
+#endif
     char *cwd = getcwd(NULL, 0);
     printf("rootdir: %s\n", cwd);
     free(cwd);
