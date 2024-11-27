@@ -96,8 +96,10 @@ SILENCEMAKE_:=-s
 SILENCEMAKE_1:=
 SILENCEMAKE:=$(SILENCEMAKE_$(V))
 
-C_TESTS:=$(shell find . -path '*/.ut' -prune -o -name \*.c -exec grep -l "#include .*ut.h" '{}' \;)
-CPP_TESTS:=$(shell find . -path '*/.ut' -prune -o -name \*.cpp -exec grep -l "#include .*ut.h" '{}' \;)
+ifneq ($(MAKECMDGOALS),mrproper)
+C_TESTS:=$(shell find . -path '*/.ut' -prune -o \( -type f -name \*.c \) -exec grep -l '#include "ut.h"' '{}' \;)
+CPP_TESTS:=$(shell find . -path '*/.ut' -prune -o \( -type f -name \*.cpp \) -exec grep -l '#include "ut.h"' '{}' \;)
+endif
 DEPS:=
 DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(C_TESTS))
 DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(CPP_TESTS))
