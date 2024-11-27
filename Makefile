@@ -79,8 +79,9 @@ endif
 # Add colored output for C compilers with lack thereof (eg: TCC)
 CCFILTER:=$(UTPATH)/ccolor.sh
 
-UT_CACHE:=.ut_cache
--include ut.mk
+UT_UT:=.ut
+UT_CACHE:=$(UT_UT)/cache
+-include $(UT_UT)/ut.mk
 #$(error UT_INCLUDES=$(UT_INCLUDES))
 CFLAGS:=-Wall -Werror -pipe -I$(UTPATH) -DUT_CACHE=\"$(UT_CACHE)\"
 CFLAGS+=$(UT_INCLUDES) -I/
@@ -95,8 +96,8 @@ SILENCEMAKE_:=-s
 SILENCEMAKE_1:=
 SILENCEMAKE:=$(SILENCEMAKE_$(V))
 
-C_TESTS:=$(shell find . -name \*.c -exec grep -l "#include .*ut.h" '{}' \;)
-CPP_TESTS:=$(shell find . -name \*.cpp -exec grep -l "#include .*ut.h" '{}' \;)
+C_TESTS:=$(shell find . -path '*/.ut' -prune -o -name \*.c -exec grep -l "#include .*ut.h" '{}' \;)
+CPP_TESTS:=$(shell find . -path '*/.ut' -prune -o -name \*.cpp -exec grep -l "#include .*ut.h" '{}' \;)
 DEPS:=
 DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(C_TESTS))
 DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(CPP_TESTS))
@@ -143,13 +144,17 @@ ifneq ("x$(UT_FAST)","x1")
 	$(AT)$(MAKE) $(SILENCEMAKE) -f $(CURRENT_MAKEFILE) slow UT_INCLUDES="$(UT_INCLUDES)"
 endif
 
+UT_PROJ:=$(PWD)
 watch:
 	$(AT)(UT_PROJ="$(UT_PROJ)" UT_VERBOSE="$(UT_VERBOSE)" UT_FAST="$(UT_FAST)" $(UTPATH)/watch.sh $(UTARGS))
 
 fast: $(PASSED_FAST)
 slow: $(PASSED_SLOW)
 
-$(UT_CACHE):
+$(UT_UT):
+	$(AT)echo "error: could not find \`$(UT_UT)/\` in \`$(UT_PROJ)\`. Try to init a new ut project there, eg: \`ut init\`"
+	$(AT)exit 1
+$(UT_CACHE): $(UT_UT)
 	$(AT)$(MKDIR) -p $@ && \
 	echo "# Created by ut automatically.\n*" > $(UT_CACHE)/.gitignore && \
 	echo "Signature: 8a477f597d28d172789f06886806bc55" > $(UT_CACHE)/CACHEDIR.TAG && \

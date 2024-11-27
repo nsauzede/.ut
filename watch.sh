@@ -75,7 +75,7 @@ function trybuild {
 }
 
 function trypy {
-    find . -name "test_*.py" -o -name "*_test.py" | grep -q . || return 0
+    find . -path '*/.ut' -prune -o \( -name "test_*.py" -o -name "*_test.py" \) -print | grep -q . || return 0
 #    separator
     change_detected "$1"
     ${pytest} ${PYUTO}

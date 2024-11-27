@@ -17,6 +17,8 @@
 #include <setjmp.h>
 #include <sys/ioctl.h>
 
+#define UT_VERSION "0.0.2"
+
 #define CTOR __attribute((constructor))
 #define TRY() (setjmp(UnitTest.jmpbuf) == 0)
 #define THROW() do{longjmp(UnitTest.jmpbuf, 1);}while(0)
@@ -239,7 +241,8 @@ int ut_main_(int argc, char *argv[]) {
     "C"
 #endif
     ;
-    printf("platform %s -- %s, language %s, %s %d.%d.%d\n", platform, argv[0], language, compiler.name, compiler.major, compiler.minor, compiler.extra);
+    const char *ut_version = UT_VERSION;
+    printf("platform %s -- ut %s, language %s, %s %d.%d.%d -- %s\n", platform, ut_version, language, compiler.name, compiler.major, compiler.minor, compiler.extra, argv[0]);
 #ifdef UT_CACHE
     const char *ut_cache = UT_CACHE;
     printf("cachedir: %s\n", ut_cache);
