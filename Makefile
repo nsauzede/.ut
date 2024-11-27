@@ -94,7 +94,6 @@ SILENCEMAKE_:=-s
 SILENCEMAKE_1:=
 SILENCEMAKE:=$(SILENCEMAKE_$(V))
 
-#UTO:=-q
 C_TESTS:=$(shell find . -name \*.c -exec grep -l "#include .*ut.h" '{}' \;)
 CPP_TESTS:=$(shell find . -name \*.cpp -exec grep -l "#include .*ut.h" '{}' \;)
 TARGET:=.ut_cache
@@ -131,21 +130,21 @@ endif
 
 
 ifeq ("x$(UT_VERBOSE)", "x1")
-UTO+=-v
+UTO:=-v
 endif
 
 all:
 ifneq ("x$(UT_FAST)","x1")
-	$(AT)echo "FAST TESTS ===================================================== UTO=$(UTO)"
+	$(AT)echo "FAST TESTS ====================================================="
 endif
-	$(AT)$(MAKE) $(SILENCEMAKE) -f $(CURRENT_MAKEFILE) fast UTO="$(UTO)" UT_INCLUDES="$(UT_INCLUDES)"
+	$(AT)$(MAKE) $(SILENCEMAKE) -f $(CURRENT_MAKEFILE) fast UT_INCLUDES="$(UT_INCLUDES)"
 ifneq ("x$(UT_FAST)","x1")
-	$(AT)echo "SLOW TESTS ===================================================== UTO=$(UTO)"
-	$(AT)$(MAKE) $(SILENCEMAKE) -f $(CURRENT_MAKEFILE) slow UTO="$(UTO)" UT_INCLUDES="$(UT_INCLUDES)"
+	$(AT)echo "SLOW TESTS ====================================================="
+	$(AT)$(MAKE) $(SILENCEMAKE) -f $(CURRENT_MAKEFILE) slow UT_INCLUDES="$(UT_INCLUDES)"
 endif
 
 watch:
-	$(AT)(UT_PROJ="$(UT_PROJ)" UTO="$(UTO)" UT_VERBOSE="$(UT_VERBOSE)" UT_FAST="$(UT_FAST)" $(UTPATH)/watch.sh $(UTARGS))
+	$(AT)(UT_PROJ="$(UT_PROJ)" UT_VERBOSE="$(UT_VERBOSE)" UT_FAST="$(UT_FAST)" $(UTPATH)/watch.sh $(UTARGS))
 
 fast: $(PASSED_FAST)
 slow: $(PASSED_SLOW)

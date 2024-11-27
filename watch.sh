@@ -61,13 +61,13 @@ function change_detected {
 }
 function trybuild {
 #    echo "CHECKING make dry-run"
-    UT_PROJ="${UT_PROJ}" UTO="${UTO}" UT_INCLUDES="${UT_INCLUDES}" ${make} --dry-run --quiet fast | grep -q . || return 0
+    UT_PROJ="${UT_PROJ}" UT_INCLUDES="${UT_INCLUDES}" ${make} --dry-run --quiet fast | grep -q . || return 0
 #    echo "done"
 #    time {
 
 #    separator
     change_detected "$1"
-    UT_PROJ="${UT_PROJ}" UTO="${UTO}" UT_INCLUDES="${UT_INCLUDES}" UT_FAST="${UT_FAST}" ${make} ${UTARGS}
+    UT_PROJ="${UT_PROJ}" UT_INCLUDES="${UT_INCLUDES}" UT_FAST="${UT_FAST}" ${make} ${UTARGS}
 #    }
     ret=$?
     tdd_status $ret
@@ -112,7 +112,7 @@ inotifywait -q --recursive --monitor --format "%e %w%f" \
 --event modify,move,create,delete ${UT_PROJ} ${BASEDIR} \
 | while read changed; do
 #    echo "changed=${changed}"
-    echo "$changed" | grep "$RE" 2>&1 > /dev/null && trybuild "$changed" || \
+    echo "$changed" | grep "$RE" 2>&1 > /dev/null && trybuild "$changed" && continue
     echo "$changed" | grep "$REPY" 2>&1 > /dev/null && trypy "$changed"
 done
 

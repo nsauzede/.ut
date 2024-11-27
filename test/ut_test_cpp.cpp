@@ -9,7 +9,8 @@
 TESTCASE(Test_generic)
     TESTMETHOD(test_intentional_memleak) {
         char *env = getenv("UT_MEMLEAK");
-        if (env && !strcmp(env, "1")) {
+        int do_leak = 0;
+        if (do_leak || (env && !strcmp(env, "1"))) {
             printf("%s\n", strdup("*intentional memleak*"));
         }
         ASSERT(1);

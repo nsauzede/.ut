@@ -213,15 +213,14 @@ fi
 #UTARGS="$*"
 
 if [ -n "${DO_CLEAN}" ]; then
-    UT_PROJ="${UT_PROJ}" UTO="${UTO}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" mrproper ${UTARGS}
+    UT_PROJ="${UT_PROJ}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" mrproper ${UTARGS}
 elif [ -n "${DO_TEST}" ]; then
-    UT_PROJ="${UT_PROJ}" UTO="${UTO}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" all ${UTARGS}
+    UT_PROJ="${UT_PROJ}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" all ${UTARGS}
 elif [ -n "${DO_RETEST}" ]; then
-    UT_PROJ="${UT_PROJ}" UTO="${UTO}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" mrproper ${UTARGS}
-    UT_PROJ="${UT_PROJ}" UTO="${UTO}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" all ${UTARGS}
+    UT_PROJ="${UT_PROJ}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" mrproper ${UTARGS}
+    UT_PROJ="${UT_PROJ}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" all ${UTARGS}
 elif [ -n "${DO_WATCH}" ]; then
-    #(cd ${UT_PROJ} ; UT_PROJ="${UT_PROJ}" UTO="${UTO}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" ${UTROOT}/watch.sh ${UTARGS})
-    UT_PROJ="${UT_PROJ}" UTO="${UTO}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" watch ${UTARGS}
+    UT_PROJ="${UT_PROJ}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" watch ${UTARGS}
 else
     echo "Error: Nothing done ?!"
     exit 1
