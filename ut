@@ -71,9 +71,9 @@ while true; do
         UTARG=$1
         case ${UTARG} in
         "") :
-            echo "error: a value is required for '-I <DIRECTORY>' but none was supplied"
+            echo "error: a value is required for '${UTOPTINCLUDE} <DIRECTORY>' but none was supplied."
             echo ""
-            echo "For more information, try '--help'."
+            echo "For more information, use '${UTOPTHELP}' option."
             exit 1
             ;;
         *) :
@@ -87,9 +87,9 @@ while true; do
         UTARG=$1
         case ${UTARG} in
         "") :
-            echo "error: a value is required for '-C <DIRECTORY>' but none was supplied"
+            echo "error: a value is required for '${UTOPTPATH} <DIRECTORY>' but none was supplied."
             echo ""
-            echo "For more information, try '--help'."
+            echo "For more information, use '${UTOPTHELP}' option."
             exit 1
             ;;
         *) :
@@ -139,7 +139,7 @@ ${UTWATCH}) :
     shift
     ;;
 *) :
-    echo "${UT}: unknown argument \"${UTARG}\""
+    echo "${UT}: unknown argument \"${UTARG}\"."
     echo "Run '${UT} ${UTOPTHELP}' for usage."
     echo ""
     exit 2
@@ -152,19 +152,25 @@ if [ -n "${DO_HELP}" ]; then
     echo -e "Usage: ${UT} [OPTIONS] [COMMAND]"
     echo -e ""
     echo -e "Options:"
-    echo -e "      ${UTOPTVERSION}\t\tPrint version info and exit"
     echo -e "      ${UTOPTHELP}\t\tPrint help"
+    echo -e "      ${UTOPTVERSION}\t\tPrint version info and exit"
+    echo -e "      ${UTOPTFAST}\t\tOnly run fast tests"
+    echo -e "      ${UTOPTFORCE}\t\tForce action"
     echo -e "      ${UTOPTVERBOSE}\t\tIncrease verbosity"
     echo -e "      ${UTOPTINCLUDE} <DIRECTORY>\tAdd include directory"
     echo -e "      ${UTOPTPATH} <DIRECTORY>\tSet project PATH to DIRECTORY instead of default PWD"
     echo -e ""
     echo -e "Commands:"
+    echo -e "    ${UTINIT}\t\tInitialize ut project root"
     echo -e "    ${UTCLEAN}\t\tClean everything"
-    echo -e "    ${UTTEST}\t\tRun the tests"
-    echo -e "    ${UTWATCH}\t\tContinuously run the tests (TDD-loop style)"
+    echo -e "    ${UTTEST}\t\tRun refreshed tests"
+    echo -e "    ${UTRETEST}\t\tRun all tests (as if they were refreshed)"
+    echo -e "    ${UTWATCH}\t\tContinuously run the tests (TDD-style)"
     echo -e "    ${UTVERSION}\t\tPrint version info and exit"
     echo -e "    ${UTHELP}\t\tPrint help"
     echo -e ""
+    echo -e ""
+    echo -e "The default command (when omitted) is '${UTWATCH}'."
     echo -e "See '${UT} ${UTHELP} <command>' for more information on a specific command."
     exit 0
 elif [ -n "${DO_VERSION}" ]; then
@@ -182,7 +188,8 @@ UT_CACHE="${UT_UT}/${UTCACHE}"
 if [ -n "${DO_INIT}" ]; then
     if [ -d ${UT_UT} ]; then
         if [ "x${UT_FORCE}" != "x1" ]; then
-            echo "Error: \`${UT} ${UTINIT}\` cannot be run on existing ut project. Use ${UTOPTFORCE} to force"
+            echo "Error: '${UT} ${UTINIT}' cannot be run on existing ut project."
+            echo "Use '${UTOPTFORCE}' option to force."
             exit 1
         fi
     fi
@@ -217,15 +224,17 @@ if [ ! -d "${UT_UT}" ]; then
             break
         fi
         if [ "${UT_PROJ0}" = "/" ]; then
-            echo "error: could not find \`${DOTUT}\` in \`${UT_PROJ}\` or any parent directory"
+            echo "error: could not find '${DOTUT}' in '${UT_PROJ}' or any parent directory."
+            echo "Run '${UT} ${UTINIT}' to initialize the root of an ut project."
             exit 1
         fi
         UT_PROJ0=`dirname ${UT_PROJ0}`
     done
-    UT_PROJ=`dirname ${UT_PROJ0}`
+    UT_PROJ=${UT_PROJ0}
 fi
 
 #UTARGS="$*"
+#echo "UT_PROJ=${UT_PROJ}"
 
 if [ -n "${DO_CLEAN}" ]; then
     UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" mrproper ${UTARGS}

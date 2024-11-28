@@ -6,6 +6,7 @@
 
 CURRENT_MAKEFILE := $(realpath $(firstword $(MAKEFILE_LIST)))
 UTPATH:=$(shell dirname $(CURRENT_MAKEFILE))
+UTSCRIPTS:=$(UTPATH)/scripts
 
 MKDIR:=mkdir
 VALGRIND:=valgrind
@@ -77,7 +78,7 @@ ifdef CC_FAST
 CC:=$(CC_FAST)
 endif
 # Add colored output for C compilers with lack thereof (eg: TCC)
-CCFILTER:=$(UTPATH)/ccolor.sh
+CCFILTER:=$(UTSCRIPTS)/ccolor.sh
 
 UT_UT:=.ut
 UT_CACHE:=$(UT_UT)/cache
@@ -97,8 +98,8 @@ SILENCEMAKE_1:=
 SILENCEMAKE:=$(SILENCEMAKE_$(V))
 
 ifneq ($(MAKECMDGOALS),mrproper)
-C_TESTS:=$(shell find . -path '*/.ut' -prune -o \( -type f -name \*.c \) -exec grep -l '#include "ut.h"' '{}' \;)
-CPP_TESTS:=$(shell find . -path '*/.ut' -prune -o \( -type f -name \*.cpp \) -exec grep -l '#include "ut.h"' '{}' \;)
+C_TESTS:=$(shell find . -path '*/.ut' -prune -o \( -type f -name \*.c \) -exec grep -l '^#include "ut.h"' '{}' \;)
+CPP_TESTS:=$(shell find . -path '*/.ut' -prune -o \( -type f -name \*.cpp \) -exec grep -l '^#include "ut.h"' '{}' \;)
 endif
 DEPS:=
 DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(C_TESTS))
@@ -148,7 +149,7 @@ endif
 
 UT_PROJ:=$(PWD)
 watch:
-	$(AT)(UT_PROJ="$(UT_PROJ)" UT_VERBOSE="$(UT_VERBOSE)" UT_FAST="$(UT_FAST)" $(UTPATH)/watch.sh $(UTARGS))
+	$(AT)(UT_PROJ="$(UT_PROJ)" UT_VERBOSE="$(UT_VERBOSE)" UT_FAST="$(UT_FAST)" $(UTSCRIPTS)/watch.sh $(UTARGS))
 
 fast: $(PASSED_FAST)
 slow: $(PASSED_SLOW)
@@ -172,11 +173,17 @@ $(UT_CACHE): $(UT_UT)
 
 $(UT_CACHE)/%.c.d: $(UT_CACHE) %.c
 	$(AT)$(MKDIR) -p $(@D) && \
-	($(CC) -MM $(CFLAGS) $*.c > $@.orig 2>&1 || (cat $@.orig | $(CCFILTER) ; $(RM) $@.orig ; false) && (cat $@.orig | sed ':a;N;$$!ba;s/\\\n//g' > $@ ; echo "$(UT_CACHE)/$*.c.fast.exe $(UT_CACHE)/$*.c.slow.exe:" `cat $@ | cut -d':' -f2` > $@ ; $(RM) $@.orig))
+	(gcc -MM $(CFLAGS) $*.c > $@.orig 2>&1 \
+	    || (cat $@.orig | $(CCFILTER) ; $(RM) $@.orig ; false) \
+	    && (cat $@.orig | $(UTSCRIPTS)/mkdep.py > $@ ; \
+	        $(RM) $@.orig))
+#	    && (cat $@.orig | sed ':a;N;$$!ba;s/\\\n//g' > $@ ; \
+#	        echo "$(UT_CACHE)/$*.c.fast.exe $(UT_CACHE)/$*.c.slow.exe:" `cat $@ | cut -d':' -f2` > $@ ; \
+#	        $(RM) $@.orig))
 
 $(UT_CACHE)/%.cpp.d: $(UT_CACHE) %.cpp
 	$(AT)$(MKDIR) -p $(@D) && \
-	($(CXX) -MM $(CFLAGS) $*.cpp | sed ':a;N;$$!ba;s/\\\n//g' > $@ 2>&1 || (cat $@ ; $(RM) $@ ; false) && (echo "$(UT_CACHE)/$*.cpp.fast.exe $(UT_CACHE)/$*.cpp.slow.exe:" `cat $@ | cut -d':' -f2` > $@))
+	(g++ -MM $(CFLAGS) $*.cpp | sed ':a;N;$$!ba;s/\\\n//g' > $@ 2>&1 || (cat $@ ; $(RM) $@ ; false) && (echo "$(UT_CACHE)/$*.cpp.fast.exe $(UT_CACHE)/$*.cpp.slow.exe:" `cat $@ | cut -d':' -f2` > $@))
 
 .INTERMEDIATE: $(EXES)
 

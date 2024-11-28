@@ -10,8 +10,9 @@
 RE='\(MODIFY\|CREATE\) .*\.\(c\|cpp\|h\)$'
 REPY='\(MODIFY\|CREATE\) .*\.\(py\)$'
 
-export BASEDIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
-export MAKEFILE="${BASEDIR}/Makefile"
+SCRIPTSDIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+UTROOT="$(dirname ${SCRIPTSDIR})"
+MAKEFILE="${UTROOT}/Makefile"
 if [ "${V}" = "1" ]; then
     SILENCEMAKE=--no-print-directory
 else
@@ -104,12 +105,12 @@ if [ -z "$(which inotifywait)" ]; then
     exit 1
 fi
 ${make} mrproper
-trypy "All Python" -q
-trybuild "All C/C++"
+trypy "All Python" -q || exit 1
+trybuild "All C/C++" || exit 1
 ################################################################################
 inotifywait -q --recursive --monitor --format "%e %w%f" \
 --exclude '#' \
---event modify,move,create,delete ${UT_PROJ} ${BASEDIR} \
+--event modify,move,create,delete ${UT_PROJ} ${UTROOT} \
 | while read changed; do
 #    echo "changed=${changed}"
     echo "$changed" | grep "$RE" 2>&1 > /dev/null && trybuild "$changed" && continue

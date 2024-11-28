@@ -33,7 +33,7 @@ $ gcc a.c && ./a.out
 The executable returns 0 if all test cases/methods pass.
 
 # Convenience tools
-Some optional tools are provided, to accelerate the TDD-loop approach: red, green, refactor steps.
+Some optional tools are provided, to accelerate the TDD-loop approach: red-green-refactor steps.
 
 1) a `Makefile` is provided to automatically clean/build/test all C/C++ adequate test files
 2) a `watch.sh` shell scripts constinuously monitors file-system changes and re-run modified tests
@@ -42,9 +42,8 @@ Some optional tools are provided, to accelerate the TDD-loop approach: red, gree
 (just adapt to where you did install the `ut_` repo on your system)
 
 # Recommended dependencies
-It is recommended to install the following dependencies.
-- at least one (or more) of these C/C++ compilers: `tcc`, `gcc`, `clang`
-- `make`
-- `valgrind`
+It is recommended to install the following dependencies:
+- `make`, `python3.9+`, `pytest`
+- `gcc`, and maybe also: `tcc`, `clang`
 - `inotify-tools`
-- `pytest`
+- `valgrind`
