@@ -17,7 +17,7 @@
 #include <setjmp.h>
 #include <sys/ioctl.h>
 
-#define UT_VERSION "0.0.2"
+#define UT_VERSION "0.0.3"
 
 #define CTOR __attribute((constructor))
 #define TRY() (setjmp(UnitTest.jmpbuf) == 0)
@@ -202,7 +202,6 @@ int ut_main_(int argc, char *argv[]) {
         }
         arg++;
     }
-    //printf("verbosity=%d\n", verbosity);
     int failed = 0;
     int passed = 0;
     int width = ut_get_term_width();

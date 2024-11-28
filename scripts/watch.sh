@@ -8,7 +8,7 @@
 
 #UTARGS=$*
 RE='\(MODIFY\|CREATE\) .*\.\(c\|cpp\|h\)$'
-REPY='\(MODIFY\|CREATE\) .*\.\(py\)$'
+REPY='\(MODIFY\|CREATE\) .*test.*\.\(py\)$'
 
 SCRIPTSDIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 UTROOT="$(dirname ${SCRIPTSDIR})"
@@ -19,10 +19,10 @@ else
     SILENCEMAKE=-s
 fi
 export make="make -f ${MAKEFILE} ${SILENCEMAKE}"
-export pytest=pytest
+export PYTEST=pytest
 [ ! -n "${UT_PROJ}" ] && UT_PROJ=${PWD}
 
-PYUTO="--tb=short"
+PYUTO="--tb=short --no-header --no-summary"
 if [ "x${UT_VERBOSE}" = "x1" ]; then
 PYUTO+=" -v"
 else
@@ -72,14 +72,24 @@ function trybuild {
 #    }
     ret=$?
     tdd_status $ret
-    return $ret
+#    return $ret
+    return 1
 }
 
 function trypy {
-    find . -path '*/.ut' -prune -o \( -name "test_*.py" -o -name "*_test.py" \) -print | grep -q . || return 0
+#    echo "hello trypy!"
+#    [ -x ${PYTEST} ] || return 0
+#    echo "ARG=$1"
+    TESTS=`echo $1 | cut -d " " -f 2`
+    echo $TESTS | grep "\.py$" > /dev/null
+    if [ ! "x$?" = "x0" ]; then
+        TESTS=`find . -path '*/.ut' -prune -o \( -name "test_*.py" -o -name "*_test.py" \) -print`
+    fi
 #    separator
     change_detected "$1"
-    ${pytest} ${PYUTO}
+    for t in ${TESTS}; do
+        ${PYTEST} ${PYUTO} $t
+    done
     ret=$?
     tdd_status $ret
     return $ret
@@ -89,7 +99,7 @@ if [ $WIN32 = 1 ]; then
 # Windows
 ${make} mrproper inww.exe || (echo "Can't build required inww.exe"; exit 1)
 trybuild "From scratch"
-${pytest} || exit 1
+${PYTEST} || exit 1
 ################################################################################
 while true; do ./inww.exe | (while read changed ; do
     echo "$changed" | grep "$RE" 2>&1 > /dev/null || continue
@@ -105,16 +115,17 @@ if [ -z "$(which inotifywait)" ]; then
     exit 1
 fi
 ${make} mrproper
-trypy "All Python" -q || exit 1
-trybuild "All C/C++" || exit 1
+trypy "All Python" -q #|| exit 1
+trybuild "All C/C++" #|| exit 1
 ################################################################################
 inotifywait -q --recursive --monitor --format "%e %w%f" \
 --exclude '#' \
 --event modify,move,create,delete ${UT_PROJ} ${UTROOT} \
 | while read changed; do
 #    echo "changed=${changed}"
-    echo "$changed" | grep "$RE" 2>&1 > /dev/null && trybuild "$changed" && continue
+    echo "$changed" | grep "$RE" 2>&1 > /dev/null && trybuild "$changed"
     echo "$changed" | grep "$REPY" 2>&1 > /dev/null && trypy "$changed"
+#    echo "looping.."
 done
 
 fi

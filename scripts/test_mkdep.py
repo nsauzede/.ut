@@ -14,8 +14,8 @@ def test():
         f"test_list.o: {tstdir}/{tst} {tstdir}/../../include/list.h {tstdir}/../../src/list.c {utdir}/ut.h",
         f"test_list.o:  {tstdir}/{tst}  {tstdir}/../../include/list.h     {tstdir}/../../src/list.c  {utdir}/ut.h",
     ]
-    exp_outp = f"""{tgts}: CFLAGS+=-Iinclude -Isrc 
-{tgts}: {tstdir}/{tst} include/list.h src/list.c {utdir}/ut.h 
+    exp_outp = f"""{tgts}: CFLAGS+=-Iinclude -Isrc
+{tgts}: {tstdir}/{tst} include/list.h src/list.c {utdir}/ut.h
 """
     def composed_assert(cwd, cache, inp, exp_outp):
         out = mkdep(cwd, cache, inp)

@@ -10,28 +10,34 @@ UTSCRIPTS:=$(UTPATH)/scripts
 
 MKDIR:=mkdir
 VALGRIND:=valgrind
-ifneq (0, $(shell ($(VALGRIND) /bin/true 2>/dev/null ; echo $$?)))
+ifneq (0, $(shell $(VALGRIND) -version > /dev/null 2>&1 ; echo $$?))
 VALGRIND:=
 endif
+PYTEST:=pytest
+ifneq (0, $(shell $(PYTEST) --version > /dev/null 2>&1 ; echo $$?))
+PYTEST:=
+endif
 TCC:=tcc
+#ifneq (0, $(shell $(TCC) --version > /dev/null 2>&1 ; echo $$?))
 ifneq (0, $(shell $(TCC) -MM /dev/null > /dev/null 2>&1 ; echo $$?))
 TCC:=
 endif
+#endif
 GCC:=gcc
-ifneq (0, $(shell $(GCC) -MM /dev/null > /dev/null 2>&1 ; echo $$?))
+ifneq (0, $(shell $(GCC) --version > /dev/null 2>&1 ; echo $$?))
 GCC:=
 endif
 CLANG:=clang
-ifneq (0, $(shell $(CLANG) -MM /dev/null > /dev/null 2>&1 ; echo $$?))
+ifneq (0, $(shell $(CLANG) --version > /dev/null 2>&1 ; echo $$?))
 CLANG:=
 endif
 
 G++:=g++
-ifneq (0, $(shell $(G++) -MM /dev/null > /dev/null 2>&1 ; echo $$?))
+ifneq (0, $(shell $(G++) --version > /dev/null 2>&1 ; echo $$?))
 G++:=
 endif
 CLANG++:=clang++
-ifneq (0, $(shell $(CLANG++) -MM /dev/null > /dev/null 2>&1 ; echo $$?))
+ifneq (0, $(shell $(CLANG++) --version > /dev/null 2>&1 ; echo $$?))
 CLANG++:=
 endif
 
@@ -132,12 +138,17 @@ VGO:=-q --leak-check=full --show-leak-kinds=all --errors-for-leak-kinds=all --ex
 VG:=$(VALGRIND) $(VGO)
 endif
 
+ifdef PYTEST
+PYTO:=--tb=short --no-header --no-summary -v
+endif
 
 ifeq ("x$(UT_VERBOSE)", "x1")
 UTO:=-v
 endif
 
-all:
+all: test_
+
+test_:
 ifneq ("x$(UT_FAST)","x1")
 	$(AT)echo "FAST TESTS ====================================================="
 endif
@@ -150,6 +161,24 @@ endif
 UT_PROJ:=$(PWD)
 watch:
 	$(AT)(UT_PROJ="$(UT_PROJ)" UT_VERBOSE="$(UT_VERBOSE)" UT_FAST="$(UT_FAST)" $(UTSCRIPTS)/watch.sh $(UTARGS))
+
+ifdef PYTEST
+PYTESTS_:=$(shell find . -path '*/.ut' -prune -o \( -name "test_*.py" -o -name "*_test.py" \) -print)
+PYTESTS:=$(addprefix PYT/, $(PYTESTS_))
+testpy: $(PYTESTS)
+#	$(AT)echo "TODO: test py here - PYTEST=$(PYTEST) PYTESTS=$(PYTESTS)";false
+#	$(AT)echo
+#	$(AT)echo "               $(PYTESTS)"
+#	$(AT)echo
+#	$(AT)for t in $(PYTESTS); do \
+#	echo $(PYTEST) $(PYTO) $$t || false; \
+#	done
+#	$(AT)echo false
+PYT/%.py:
+	$(AT)$(PYTEST) $(PYTO) $*.py
+else
+testpy:
+endif
 
 fast: $(PASSED_FAST)
 slow: $(PASSED_SLOW)
@@ -177,9 +206,6 @@ $(UT_CACHE)/%.c.d: $(UT_CACHE) %.c
 	    || (cat $@.orig | $(CCFILTER) ; $(RM) $@.orig ; false) \
 	    && (cat $@.orig | $(UTSCRIPTS)/mkdep.py > $@ ; \
 	        $(RM) $@.orig))
-#	    && (cat $@.orig | sed ':a;N;$$!ba;s/\\\n//g' > $@ ; \
-#	        echo "$(UT_CACHE)/$*.c.fast.exe $(UT_CACHE)/$*.c.slow.exe:" `cat $@ | cut -d':' -f2` > $@ ; \
-#	        $(RM) $@.orig))
 
 $(UT_CACHE)/%.cpp.d: $(UT_CACHE) %.cpp
 	$(AT)$(MKDIR) -p $(@D) && \

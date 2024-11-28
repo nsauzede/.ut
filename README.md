@@ -5,7 +5,10 @@ Simple and fast Unit Test framework.
 
 The goal is to accelerate the Test Driven Development methodology.
 
-It is primarily focused on C/C++, under the form of a single header file.
+It is primarily focused on C/C++, under the form of a single header file,
+and is meant to be completely independent to the existing build framework,
+using a set a convenience script to automate the building and running of the test.
+
 Some scripts also offer some kind of Python support (using pytest under the hood).
 
 # How to use
@@ -41,9 +44,13 @@ Some optional tools are provided, to accelerate the TDD-loop approach: red-green
 4) `ut` supports Bash auto-completion; register it in `.bashrc` like so: `[ -x ~/ut_/ut ] && . ~/ut_/ut`
 (just adapt to where you did install the `ut_` repo on your system)
 
-# Recommended dependencies
-It is recommended to install the following dependencies:
-- `make`, `python3.9+`, `pytest`
-- `gcc`, and maybe also: `tcc`, `clang`
+# Dependencies
+It is required to install the following dependencies:
+- `make4.3+`, `gcc13.2+`
+- `python3.9+`
 - `inotify-tools`
+
+It is also recommended to install those too:
+- `pytest`
+- `tcc`, `clang`
 - `valgrind`

@@ -38,7 +38,6 @@ UTMAKEFILE=${UTROOT}/Makefile
 
 SILENCEMAKE=--no-print-directory
 
-#echo "UTROOT=${UTROOT}"
 UT_INCLUDES=""
 # Default Project path, pkg, ...
 UT_PROJ=${PWD}
@@ -106,7 +105,8 @@ while true; do
     UTARG=$1
 done
 
-case ${UTARG} in
+UTCMD=${UTARG}
+case ${UTCMD} in
 ${UTINIT}) :
     DO_INIT=1
     shift
@@ -197,11 +197,6 @@ if [ -n "${DO_INIT}" ]; then
     rm -Rf ${UT_CACHE}
     echo "# ut project: \"${UT_PKG}\", from ut version ${UT_VERSION}" > ${UT_MK}
     echo "" >> ${UT_MK}
-    if [ -n "${UT_INCLUDES}" ]; then
-        echo "UT_INCLUDES:=${UT_INCLUDES}" >> ${UT_MK}
-    else
-        echo "#UT_INCLUDES:=-I foo -I bar ..." >> ${UT_MK}
-    fi
     if [ -n "${UT_FAST}" ]; then
         echo "UT_FAST:=${UT_FAST}" >> ${UT_MK}
     else
@@ -212,11 +207,15 @@ if [ -n "${DO_INIT}" ]; then
     else
         echo "#UT_VERBOSE:=1" >> ${UT_MK}
     fi
+    if [ -n "${UT_INCLUDES}" ]; then
+        echo "UT_INCLUDES:=${UT_INCLUDES}" >> ${UT_MK}
+    else
+        echo "#UT_INCLUDES:=-I foo -I bar ..." >> ${UT_MK}
+    fi
     echo -e "\tCreated ut project"
     exit 0
 fi
 
-#echo "TESTING IF UT_PROJ=${UT_PROJ} directory is valid.."
 if [ ! -d "${UT_UT}" ]; then
     UT_PROJ0=${UT_PROJ}
     while true; do
@@ -235,6 +234,12 @@ fi
 
 #UTARGS="$*"
 #echo "UT_PROJ=${UT_PROJ}"
+
+UTARG=$1
+if [ "x${UTARG}" != "x" ]; then
+    echo "Unexpected argument '${UTARG}' for command '${UTCMD}' ??!!"
+    exit 1
+fi
 
 if [ -n "${DO_CLEAN}" ]; then
     UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" mrproper ${UTARGS}
