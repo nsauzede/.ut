@@ -2,10 +2,9 @@ from mkdep import mkdep
 
 def test():
     utdir = "/home/nsauzede/perso/git/ut_"
-    cwd = utdir
     tstdir = "ut_tests/tests"
     tst = "test_list.c"
-    cache = ".ut/cache"
+    cache = f"${utdir}/.ut/cache"
     tgts = f"{cache}/./{tstdir}/{tst}.fast.exe {cache}/./{tstdir}/{tst}.slow.exe"
     inps = [
         f"""test_list.o: {tstdir}/{tst} \\
@@ -17,8 +16,8 @@ def test():
     exp_outp = f"""{tgts}: CFLAGS+=-Iinclude -Isrc
 {tgts}: {tstdir}/{tst} include/list.h src/list.c {utdir}/ut.h
 """
-    def composed_assert(cwd, cache, inp, exp_outp):
-        out = mkdep(cwd, cache, inp)
+    def composed_assert(cache, inp, exp_outp):
+        out = mkdep(cache, inp)
         assert out == exp_outp
     for inp in inps:
-        composed_assert(cwd, cache, inp, exp_outp)
+        composed_assert(cache, inp, exp_outp)

@@ -6,14 +6,15 @@
 
 #include "ut.h"
 
-TESTCASE(Test_memleak)
+#include <stdbool.h>
+TESTCASE(Test_possible_memleak)
     TESTMETHOD(test_intentional_memleak) {
         char *env = getenv("UT_MEMLEAK");
         int do_leak = 0;
         if (do_leak || (env && !strcmp(env, "1"))) {
             printf("%s\n", strdup("*intentional memleak*"));
         }
-        ASSERT(1);
+        ASSERT(true);
     }
 TESTCASE(Test_generic)
     TESTMETHOD(test_int) {

@@ -10,7 +10,7 @@ UTSCRIPTS:=$(UTPATH)/scripts
 
 MKDIR:=mkdir
 VALGRIND:=valgrind
-ifneq (0, $(shell $(VALGRIND) -version > /dev/null 2>&1 ; echo $$?))
+ifneq (0, $(shell $(VALGRIND) --version > /dev/null 2>&1 ; echo $$?))
 VALGRIND:=
 endif
 PYTEST:=pytest
@@ -89,7 +89,6 @@ CCFILTER:=$(UTSCRIPTS)/ccolor.sh
 UT_UT:=.ut
 UT_CACHE:=$(UT_UT)/cache
 -include $(UT_UT)/ut.mk
-#$(error UT_INCLUDES=$(UT_INCLUDES))
 CFLAGS:=-Wall -Werror -pipe -I$(UTPATH) -DUT_CACHE=\"$(UT_CACHE)\"
 CFLAGS+=$(UT_INCLUDES) -I/
 CXXFLAGS:=-Wall -Werror -pipe -I$(UTPATH) -DUT_CACHE=\"$(UT_CACHE)\"
@@ -103,13 +102,13 @@ SILENCEMAKE_:=-s
 SILENCEMAKE_1:=
 SILENCEMAKE:=$(SILENCEMAKE_$(V))
 
+DEPS:=
 ifneq ($(MAKECMDGOALS),mrproper)
 C_TESTS:=$(shell find . -path '*/.ut' -prune -o \( -type f -name \*.c \) -exec grep -l '^#include "ut.h"' '{}' \;)
 CPP_TESTS:=$(shell find . -path '*/.ut' -prune -o \( -type f -name \*.cpp \) -exec grep -l '^#include "ut.h"' '{}' \;)
-endif
-DEPS:=
 DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(C_TESTS))
 DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(CPP_TESTS))
+endif
 
 EXES:=
 PASSED_FAST:=
@@ -139,16 +138,52 @@ VG:=$(VALGRIND) $(VGO)
 endif
 
 ifdef PYTEST
-PYTO:=--tb=short --no-header --no-summary -v
+PYTO:=--tb=short --no-header
+ifeq ("x$(UT_VERBOSE)", "x1")
+PYTO+=-v
+endif
 endif
 
 ifeq ("x$(UT_VERBOSE)", "x1")
 UTO:=-v
 endif
 
-all: test_
+ifdef PYTEST
+PYTESTS_:=$(shell find . -path '*/.ut' -prune -o \( -name "test_*.py" -o -name "*_test.py" \) -print)
+PYTESTS:=$(addprefix PYT/, $(PYTESTS_))
+ifneq ($(MAKECMDGOALS),mrproper)
+DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(PYTESTS_))
+endif
+PASSED_PY=$(patsubst %,$(UT_CACHE)/%.passed,$(PYTESTS_))
+ifdef UT_DRY_RUN
+FAIL_ACTION:=true
+else
+FAIL_ACTION:=(rm -f $@ ; exit 1)
+endif
+$(UT_CACHE)/%.py.d: $(UT_CACHE)/.gitignore %.py
+	$(AT)$(MKDIR) -p $(@D)
+	$(AT)$(UTSCRIPTS)/mkpydep.py -t $*.py -o $@ $(PYTO) && touch $(UT_CACHE)/$*.py.passed || $(FAIL_ACTION)
+endif
 
-test_:
+PASSED:=
+PASSED+=$(PASSED_PY)
+PASSED+=$(PASSED_FAST)
+ifneq ("x$(UT_FAST)","x1")
+PASSED+=$(PASSED_SLOW)
+endif
+
+all: $(PASSED)
+dry-run: $(PASSED)
+
+ifdef PYTEST
+test_py: $(PASSED_PY)
+TEST_PY_PASSED=$(AT)$(UTSCRIPTS)/mkpydep.py -t $< -o $(UT_CACHE)/$*.py.d $(PYTO) && touch $@
+$(UT_CACHE)/%.py.passed: %.py ; $(TEST_PY_PASSED)
+else
+test_py:
+endif
+
+test_compiled:
 ifneq ("x$(UT_FAST)","x1")
 	$(AT)echo "FAST TESTS ====================================================="
 endif
@@ -159,35 +194,17 @@ ifneq ("x$(UT_FAST)","x1")
 endif
 
 UT_PROJ:=$(PWD)
-watch:
-	$(AT)(UT_PROJ="$(UT_PROJ)" UT_VERBOSE="$(UT_VERBOSE)" UT_FAST="$(UT_FAST)" $(UTSCRIPTS)/watch.sh $(UTARGS))
+#watch:
+#	$(AT)(UT_PROJ="$(UT_PROJ)" UT_VERBOSE="$(UT_VERBOSE)" UT_FAST="$(UT_FAST)" $(UTSCRIPTS)/watch.sh $(UTARGS))
 
-ifdef PYTEST
-PYTESTS_:=$(shell find . -path '*/.ut' -prune -o \( -name "test_*.py" -o -name "*_test.py" \) -print)
-PYTESTS:=$(addprefix PYT/, $(PYTESTS_))
-testpy: $(PYTESTS)
-#	$(AT)echo "TODO: test py here - PYTEST=$(PYTEST) PYTESTS=$(PYTESTS)";false
-#	$(AT)echo
-#	$(AT)echo "               $(PYTESTS)"
-#	$(AT)echo
-#	$(AT)for t in $(PYTESTS); do \
-#	echo $(PYTEST) $(PYTO) $$t || false; \
-#	done
-#	$(AT)echo false
-PYT/%.py:
-	$(AT)$(PYTEST) $(PYTO) $*.py
-else
-testpy:
-endif
-
-fast: $(PASSED_FAST)
+fast: test_py $(PASSED_FAST)
 slow: $(PASSED_SLOW)
 
 $(UT_UT):
 	$(AT)echo "error: could not find \`$(UT_UT)/\` in \`$(UT_PROJ)\`. Try to init a new ut project there, eg: \`ut init\`"
 	$(AT)exit 1
-$(UT_CACHE): $(UT_UT)
-	$(AT)$(MKDIR) -p $@ && \
+$(UT_CACHE)/.gitignore: $(UT_UT)
+	$(AT)$(MKDIR) -p $(@D) && \
 	echo "# Created by ut automatically.\n*" > $(UT_CACHE)/.gitignore && \
 	echo "Signature: 8a477f597d28d172789f06886806bc55" > $(UT_CACHE)/CACHEDIR.TAG && \
 	echo "# This file is a cache directory tag created by ut." >> $(UT_CACHE)/CACHEDIR.TAG && \
@@ -200,14 +217,14 @@ $(UT_CACHE): $(UT_UT)
 	echo "" >> $(UT_CACHE)/README.md && \
 	echo "See [the docs](https://github.com/nsauzede/ut_/blob/main/README.md) for more information." >> $(UT_CACHE)/README.md
 
-$(UT_CACHE)/%.c.d: $(UT_CACHE) %.c
+$(UT_CACHE)/%.c.d: $(UT_CACHE)/.gitignore %.c
 	$(AT)$(MKDIR) -p $(@D) && \
 	(gcc -MM $(CFLAGS) $*.c > $@.orig 2>&1 \
 	    || (cat $@.orig | $(CCFILTER) ; $(RM) $@.orig ; false) \
-	    && (cat $@.orig | $(UTSCRIPTS)/mkdep.py > $@ ; \
+	    && (cat $@.orig | $(UTSCRIPTS)/mkdep.py $(PWD) > $@ ; \
 	        $(RM) $@.orig))
 
-$(UT_CACHE)/%.cpp.d: $(UT_CACHE) %.cpp
+$(UT_CACHE)/%.cpp.d: $(UT_CACHE)/.gitignore %.cpp
 	$(AT)$(MKDIR) -p $(@D) && \
 	(g++ -MM $(CFLAGS) $*.cpp | sed ':a;N;$$!ba;s/\\\n//g' > $@ 2>&1 || (cat $@ ; $(RM) $@ ; false) && (echo "$(UT_CACHE)/$*.cpp.fast.exe $(UT_CACHE)/$*.cpp.slow.exe:" `cat $@ | cut -d':' -f2` > $@))
 

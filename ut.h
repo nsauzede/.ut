@@ -17,7 +17,7 @@
 #include <setjmp.h>
 #include <sys/ioctl.h>
 
-#define UT_VERSION "0.0.3"
+#define UT_VERSION "0.0.4"
 
 #define CTOR __attribute((constructor))
 #define TRY() (setjmp(UnitTest.jmpbuf) == 0)

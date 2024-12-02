@@ -4,6 +4,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+from ut_dummy import *
+
 class TestB:
     def test(self):assert 1==1+1*0
     def test2(self):

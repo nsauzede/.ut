@@ -7,8 +7,7 @@
 #
 
 #UTARGS=$*
-RE='\(MODIFY\|CREATE\) .*\.\(c\|cpp\|h\)$'
-REPY='\(MODIFY\|CREATE\) .*test.*\.\(py\)$'
+RE='\(CREATE\|ATTRIB\|MOVE\|DELETE\) .*\.\(c\|cpp\|h\|py\)$'
 
 SCRIPTSDIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 UTROOT="$(dirname ${SCRIPTSDIR})"
@@ -22,7 +21,7 @@ export make="make -f ${MAKEFILE} ${SILENCEMAKE}"
 export PYTEST=pytest
 [ ! -n "${UT_PROJ}" ] && UT_PROJ=${PWD}
 
-PYUTO="--tb=short --no-header --no-summary"
+PYUTO="--tb=short --no-header"
 if [ "x${UT_VERBOSE}" = "x1" ]; then
 PYUTO+=" -v"
 else
@@ -47,7 +46,7 @@ function separator {
 #    printf "\n\n\n\n\n\n\n\n"
 }
 function tdd_status {
-    if [ "$1" = "0" ]; then
+    if [ "x$1" = "x0" ]; then
         printf "\n${bgreen}[=> SUCCESS <=]${nrm}"
     else
         printf "\n${bred}[=> FAILURE <=]${nrm}"
@@ -60,39 +59,14 @@ function change_detected {
     printf "${bwhite}---------------------> "\
 "Re{build|test}ing..${nrm} [$1]\n\n"
 }
-function trybuild {
-#    echo "CHECKING make dry-run"
-    UT_PROJ="${UT_PROJ}" UT_INCLUDES="${UT_INCLUDES}" ${make} --dry-run --quiet fast | grep -q . || return 0
-#    echo "done"
-#    time {
-
-#    separator
+function trytests {
+    UT_PROJ="${UT_PROJ}" UT_INCLUDES="${UT_INCLUDES}" ${make} --dry-run all UT_DRY_RUN=1| grep -q . || return 0
     change_detected "$1"
     UT_PROJ="${UT_PROJ}" UT_INCLUDES="${UT_INCLUDES}" UT_FAST="${UT_FAST}" ${make} ${UTARGS}
-#    }
     ret=$?
     tdd_status $ret
 #    return $ret
     return 1
-}
-
-function trypy {
-#    echo "hello trypy!"
-#    [ -x ${PYTEST} ] || return 0
-#    echo "ARG=$1"
-    TESTS=`echo $1 | cut -d " " -f 2`
-    echo $TESTS | grep "\.py$" > /dev/null
-    if [ ! "x$?" = "x0" ]; then
-        TESTS=`find . -path '*/.ut' -prune -o \( -name "test_*.py" -o -name "*_test.py" \) -print`
-    fi
-#    separator
-    change_detected "$1"
-    for t in ${TESTS}; do
-        ${PYTEST} ${PYUTO} $t
-    done
-    ret=$?
-    tdd_status $ret
-    return $ret
 }
 
 if [ $WIN32 = 1 ]; then
@@ -114,18 +88,15 @@ if [ -z "$(which inotifywait)" ]; then
     echo "Requirement: install `inotify-tools`"
     exit 1
 fi
-${make} mrproper
-trypy "All Python" -q #|| exit 1
-trybuild "All C/C++" #|| exit 1
+trytests "BOOTSTRAP <all relevant files>" && tdd_status 0
 ################################################################################
+evlist="modify,create,attrib,move,delete"
 inotifywait -q --recursive --monitor --format "%e %w%f" \
 --exclude '#' \
---event modify,move,create,delete ${UT_PROJ} ${UTROOT} \
+--event ${evlist} ${UT_PROJ} ${UTROOT} \
 | while read changed; do
 #    echo "changed=${changed}"
-    echo "$changed" | grep "$RE" 2>&1 > /dev/null && trybuild "$changed"
-    echo "$changed" | grep "$REPY" 2>&1 > /dev/null && trypy "$changed"
-#    echo "looping.."
+    echo "$changed" | grep "$RE" 2>&1 > /dev/null && trytests "$changed"
 done
 
 fi

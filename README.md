@@ -7,27 +7,57 @@ The goal is to accelerate the Test Driven Development methodology.
 
 It is primarily focused on C/C++, under the form of a single header file,
 and is meant to be completely independent to the existing build framework,
-using a set a convenience script to automate the building and running of the test.
+using a set a convenience scripts to automate the building and running of the tests.
 
 Some scripts also offer some kind of Python support (using pytest under the hood).
 
 # How to use
 Include (quoted) `ut.h` single header inside any C or C++ file and add testcases like this:
 ```C
-// Some "a.c" (or "a.cpp") source code file
+// Some "a.c" (or "a.cpp") source file
 int foo { return 42; }
 ...
 #include "ut.h"
-TESTCASE(Test1)
-    TESTMETHOD(test) {
+TESTCASE(Test_foo_behaviour)
+    TESTMETHOD(test_foo_returns_the_answer) {
         ASSERT_EQ(42, foo());
     }
 ...
 ```
+Note that, usually, the tests are preferably put in separate files (usually named `test_*.{c,cpp}` or `*_test.{c,cpp}`, although the `ut` framework actually detects any source including the proper header as above).
+In that case, all that is needed, is to include the source file at the top of the test file (remember: this is a unit-test framework), like so:
+```C
+// Some "test_a.c" (or eg: "a_test.cpp") test file
+#include "path/to/a.c"          // or #include "path/to/a.cpp"
+
+#include "ut.h"
+TESTCASE(Test_foo_behaviour)
+    TESTMETHOD(test_foo_returns_the_answer) {
+        ASSERT_EQ(42, foo());
+    }
+...
+```
+
+
 `TESTCASE` registers a kind of TestCase 'class', like with Python `unittest`/`pytest`
-and `TESTMETHOD` registers test methods inside such a TestCase 'class'.
+and `TESTMETHOD` registers a test method inside such a TestCase 'class'.
 Inside such a test method, regular C/C++ code can be written, using `ASSERT*` provided macros
 to perform test assertions.
+
+Note that, for simple tests cases, the `TESTCASE` construct can be ommitted, thus only `TESTMETHOD` have to be used, for less boilerplate code.
+This can be useful eg: for quickly prototyping an idea with the following minimalistic source/test file:
+```C
+// Some "a.c" (or "a.cpp") source source/test file
+int foo { return 42; }
+...
+#include "ut.h"
+TESTMETHOD(test_foo_returns_the_answer) {
+    ASSERT_EQ(42, foo());
+}
+...
+```
+The only caveat, in that case, is that all such defined `TESTMETHOD` symbols (`test_foo_returns_the_answer` in that case) must be unique, whereas they could be duplicates when registered in different `TESTCASE` like previously.
+
 
 Then the resulting C/C++ test file can be simply built/run as an unit-test executable:
 ```
