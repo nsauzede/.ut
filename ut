@@ -36,7 +36,8 @@ UT_VERSION=`grep "define UT_VERSION" ${UTROOT}/ut.h|cut -d'"' -f2`
 
 UTMAKEFILE=${UTROOT}/Makefile
 
-SILENCEMAKE=--no-print-directory
+#SILENCEMAKE=--no-print-directory
+SILENCEMAKE=-s
 
 UT_INCLUDES=""
 # Default Project path, pkg, ...
@@ -149,7 +150,7 @@ esac
 if [ -n "${DO_HELP}" ]; then
     echo -e "UT Unit Test tool"
     echo -e ""
-    echo -e "Usage: ${UT} [OPTIONS] [COMMAND]"
+    echo -e "Usage: ${UT} [OPTIONS] [COMMAND] [directory]"
     echo -e ""
     echo -e "Options:"
     echo -e "      ${UTOPTHELP}\t\tPrint help"
@@ -169,6 +170,7 @@ if [ -n "${DO_HELP}" ]; then
     echo -e "    ${UTVERSION}\t\tPrint version info and exit"
     echo -e "    ${UTHELP}\t\tPrint help"
     echo -e ""
+    echo -e "Optional trailing 'directory' specifies which project subdirectory to run tests from (default is project root)."
     echo -e ""
     echo -e "The default command (when omitted) is '${UTWATCH}'."
     echo -e "See '${UT} ${UTHELP} <command>' for more information on a specific command."
@@ -235,22 +237,29 @@ fi
 #UTARGS="$*"
 #echo "UT_PROJ=${UT_PROJ}"
 
+UT_DIR=.
 UTARG=$1
 if [ "x${UTARG}" != "x" ]; then
-    echo "Unexpected argument '${UTARG}' for command '${UTCMD}' ??!!"
-    exit 1
+    if [ -d "$1" ]; then
+        UT_DIR=$(realpath $1)
+#        echo "UT_DIR=${UT_DIR}"
+#        exit 1
+    else
+        echo "Unexpected argument '${UTARG}' for command '${UTCMD}' ??!!"
+        exit 1
+    fi
 fi
 
 if [ -n "${DO_CLEAN}" ]; then
-    UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" mrproper ${UTARGS}
+    UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" mrproper ${UTARGS}
 elif [ -n "${DO_TEST}" ]; then
-    UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" all ${UTARGS}
+    UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" all ${UTARGS}
 elif [ -n "${DO_RETEST}" ]; then
-    UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" mrproper ${UTARGS}
-    UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" all ${UTARGS}
+    UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" mrproper ${UTARGS}
+    UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" all ${UTARGS}
 elif [ -n "${DO_WATCH}" ]; then
-#    UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" watch ${UTARGS}
-    (cd "${UT_PROJ}"; UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" ${UTROOT}/scripts/watch.sh ${UTARGS})
+#    UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" watch ${UTARGS}
+    (cd "${UT_PROJ}"; UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" ${UTROOT}/scripts/watch.sh ${UTARGS})
 else
     echo "Error: Nothing done ?!"
     exit 1

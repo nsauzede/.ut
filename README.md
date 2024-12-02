@@ -74,6 +74,57 @@ Some optional tools are provided, to accelerate the TDD-loop approach: red-green
 4) `ut` supports Bash auto-completion; register it in `.bashrc` like so: `[ -x ~/ut_/ut ] && . ~/ut_/ut`
 (just adapt to where you did install the `ut_` repo on your system)
 
+How (easy it is) to use `ut` tool?
+First you have to initialize the ut project root directory (only once!).
+This is where the cache will be stored, and it defines the subtree that will be searched for tests to run.
+```shell
+$ cd <to your future ut project root>
+$ ut init
+```
+Then, you can run the tests, from anywhere below or at your ut project root:
+```shell
+$ cd <anywhere below or at ut project root>
+$ ut test
+< Python and/or C/C++ tests output>
+...
+$
+```
+If all tests passed, then an immediate `test` rerun (ie: without changing the sources) should not output anything:
+```shell
+$ cd <anywhere below or at ut project root>
+$ ut test
+$
+```
+That's expected, because all tests passed, and source files/tests have not changed.
+If needed, it is possible to force the tests to re-run, either by cleaning the cache:
+```shell
+$ cd <anywhere below or at ut project root>
+$ ut clean
+$ ut test
+< Python and/or C/C++ tests output>
+...
+$
+```
+Or by using the `retest` command that just does `clean`+`test`:
+```shell
+$ cd <anywhere below or at ut project root>
+$ ut retest
+< Python and/or C/C++ tests output>
+...
+$
+```
+
+Note that a handy feature allows to only run tests below a certain subdirectory (to not run any tests outside of it).
+Eg: if there are two test subdirs `tests1/` and `tests1/` below the ut project root, then the following will only re-run tests from `test1/`:
+```shell
+$ cd <to ut project root>
+$ ut retest tests1
+< Python and/or C/C++ tests output from tests1 only >
+...
+$
+```
+
+
 # Dependencies
 It is required to install the following dependencies:
 - `make4.3+`, `gcc13.2+`

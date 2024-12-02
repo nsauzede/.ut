@@ -7,6 +7,7 @@
 CURRENT_MAKEFILE := $(realpath $(firstword $(MAKEFILE_LIST)))
 UTPATH:=$(shell dirname $(CURRENT_MAKEFILE))
 UTSCRIPTS:=$(UTPATH)/scripts
+UT_DIR?=.
 
 MKDIR:=mkdir
 VALGRIND:=valgrind
@@ -104,8 +105,8 @@ SILENCEMAKE:=$(SILENCEMAKE_$(V))
 
 DEPS:=
 ifneq ($(MAKECMDGOALS),mrproper)
-C_TESTS:=$(shell find . -path '*/.ut' -prune -o \( -type f -name \*.c \) -exec grep -l '^#include "ut.h"' '{}' \;)
-CPP_TESTS:=$(shell find . -path '*/.ut' -prune -o \( -type f -name \*.cpp \) -exec grep -l '^#include "ut.h"' '{}' \;)
+C_TESTS:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.c \) -exec grep -l '^#include "ut.h"' '{}' \;)
+CPP_TESTS:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.cpp \) -exec grep -l '^#include "ut.h"' '{}' \;)
 DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(C_TESTS))
 DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(CPP_TESTS))
 endif
@@ -149,7 +150,7 @@ UTO:=-v
 endif
 
 ifdef PYTEST
-PYTESTS_:=$(shell find . -path '*/.ut' -prune -o \( -name "test_*.py" -o -name "*_test.py" \) -print)
+PYTESTS_:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -name "test_*.py" -o -name "*_test.py" \) -print)
 PYTESTS:=$(addprefix PYT/, $(PYTESTS_))
 ifneq ($(MAKECMDGOALS),mrproper)
 DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(PYTESTS_))
