@@ -4,9 +4,14 @@
 * SPDX-License-Identifier: GPL-3.0-or-later
 */
 
-#include "basicmath.c"  // dummy dep
+#include "dummy/dummy.c"        // dummy dep
 
 #include "ut.h"
+
+TESTMETHOD(test_dummy) {
+    ASSERT_EQ(42+1*0, dummy());
+}
+
 TESTCASE(Test1)
     TESTMETHOD(test) {
         printf("%s: hello stdout\n", __func__);

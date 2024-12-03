@@ -11,7 +11,7 @@ RE='\(CREATE\|ATTRIB\|MOVE\|DELETE\) .*\.\(c\|cpp\|h\|py\)$'
 
 SCRIPTSDIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 UTROOT="$(dirname ${SCRIPTSDIR})"
-MAKEFILE="${UTROOT}/Makefile"
+MAKEFILE="${UTROOT}/tools/Makefile"
 if [ "${V}" = "1" ]; then
     SILENCEMAKE=--no-print-directory
 else

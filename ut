@@ -7,6 +7,7 @@ UTOPTHELP="--help"
 UTOPTVERSION="--version"
 UTOPTFAST="--fast"
 UTOPTFORCE="-f"
+UTOPTCLEAN="-c"
 UTOPTVERBOSE="-v"
 UTOPTINCLUDE="-I"
 UTOPTPATH="-C"
@@ -31,13 +32,10 @@ fi
 UT=ut
 UTBINPATH=$(realpath `readlink ${UTBIN} || echo ${UTBIN}`)
 UTROOT=`dirname ${UTBINPATH}`
-UT_VERSION=`grep "define UT_VERSION" ${UTROOT}/ut.h|cut -d'"' -f2`
+UT_VERSION=`grep "define UT_VERSION" ${UTROOT}/include/ut.h|cut -d'"' -f2`
 
 
-UTMAKEFILE=${UTROOT}/Makefile
-
-#SILENCEMAKE=--no-print-directory
-SILENCEMAKE=-s
+UTMAKEFILE=${UTROOT}/tools/Makefile
 
 UT_INCLUDES=""
 # Default Project path, pkg, ...
@@ -60,6 +58,10 @@ while true; do
         ;;
     ${UTOPTFORCE}) :
         UT_FORCE=1
+        shift
+        ;;
+    ${UTOPTCLEAN}) :
+        UT_OPTCLEAN=1
         shift
         ;;
     ${UTOPTVERBOSE}) :
@@ -106,6 +108,13 @@ while true; do
     UTARG=$1
 done
 
+if [ "x${V}" = "x1" -o "x${UT_VERBOSE}" = "x1" ]; then
+SILENCEMAKE=--no-print-directory
+else
+SILENCEMAKE=-s
+fi
+
+UT_DIR=.
 UTCMD=${UTARG}
 case ${UTCMD} in
 ${UTINIT}) :
@@ -132,31 +141,60 @@ ${UTRETEST}) :
     DO_RETEST=1
     shift
     ;;
-"") :
-    DO_WATCH=1
-    ;;
 ${UTWATCH}) :
     DO_WATCH=1
     shift
     ;;
+"" | "--") :
+    UTCMD=${UTWATCH}
+    DO_WATCH=1
+    ;;
 *) :
-    echo "${UT}: unknown argument \"${UTARG}\"."
-    echo "Run '${UT} ${UTOPTHELP}' for usage."
-    echo ""
-    exit 2
+    if [ -d "$1" ]; then
+        UTCMD=${UTWATCH}
+        DO_WATCH=1
+    else
+        echo "Unexpected argument '${UTARG}'."
+        echo "Run '${UT} ${UTOPTHELP}' for usage."
+        echo ""
+        exit 1
+    fi
     ;;
 esac
+UTARG=$1
+
+#echo "UTARG=${UTARG}"
+if [ "x${UTARG}" != "x" ]; then
+    if [ -d "$UTARG" ]; then
+        UT_DIR=$(realpath ${UTARG})
+        #echo "UT_DIR=${UT_DIR}"
+        shift
+        UTARG=$1
+    fi
+    if [ "x${UTARG}" = "x--" ]; then
+        shift
+        UT_ARGS="$*"
+    elif [ "x${UTARG}" != "x" ]; then
+        echo "Unexpected argument '${UTARG}' for command '${UTCMD}'."
+        echo "Run '${UT} ${UTOPTHELP}' for usage."
+        echo ""
+        exit 1
+    fi
+fi
+#echo "UT_ARGS=${UT_ARGS}"
+
 
 if [ -n "${DO_HELP}" ]; then
     echo -e "UT Unit Test tool"
     echo -e ""
-    echo -e "Usage: ${UT} [OPTIONS] [COMMAND] [directory]"
+    echo -e "Usage: ${UT} [OPTIONS] [COMMAND] [directory] [--] [...]"
     echo -e ""
     echo -e "Options:"
     echo -e "      ${UTOPTHELP}\t\tPrint help"
     echo -e "      ${UTOPTVERSION}\t\tPrint version info and exit"
     echo -e "      ${UTOPTFAST}\t\tOnly run fast tests"
     echo -e "      ${UTOPTFORCE}\t\tForce action"
+    echo -e "      ${UTOPTCLEAN}\t\tClean first before running command"
     echo -e "      ${UTOPTVERBOSE}\t\tIncrease verbosity"
     echo -e "      ${UTOPTINCLUDE} <DIRECTORY>\tAdd include directory"
     echo -e "      ${UTOPTPATH} <DIRECTORY>\tSet project PATH to DIRECTORY instead of default PWD"
@@ -171,6 +209,7 @@ if [ -n "${DO_HELP}" ]; then
     echo -e "    ${UTHELP}\t\tPrint help"
     echo -e ""
     echo -e "Optional trailing 'directory' specifies which project subdirectory to run tests from (default is project root)."
+    echo -e "Optional trailing '--' allows for subsequent args to be passed as-is to underlying tools."
     echo -e ""
     echo -e "The default command (when omitted) is '${UTWATCH}'."
     echo -e "See '${UT} ${UTHELP} <command>' for more information on a specific command."
@@ -234,32 +273,21 @@ if [ ! -d "${UT_UT}" ]; then
     UT_PROJ=${UT_PROJ0}
 fi
 
-#UTARGS="$*"
-#echo "UT_PROJ=${UT_PROJ}"
-
-UT_DIR=.
-UTARG=$1
-if [ "x${UTARG}" != "x" ]; then
-    if [ -d "$1" ]; then
-        UT_DIR=$(realpath $1)
-#        echo "UT_DIR=${UT_DIR}"
-#        exit 1
-    else
-        echo "Unexpected argument '${UTARG}' for command '${UTCMD}' ??!!"
-        exit 1
-    fi
+if [ -n "${UT_OPTCLEAN}" -o -n "${DO_CLEAN}" ]; then
+    UT_ARGS="${UT_ARGS}" UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" mrproper
 fi
 
 if [ -n "${DO_CLEAN}" ]; then
-    UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" mrproper ${UTARGS}
+    # already done
+    exit 0
 elif [ -n "${DO_TEST}" ]; then
-    UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" all ${UTARGS}
+    UT_ARGS="${UT_ARGS}" UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" all
 elif [ -n "${DO_RETEST}" ]; then
-    UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" mrproper ${UTARGS}
-    UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" all ${UTARGS}
+    UT_ARGS="${UT_ARGS}" UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" mrproper
+    UT_ARGS="${UT_ARGS}" UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" all
 elif [ -n "${DO_WATCH}" ]; then
-#    UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" watch ${UTARGS}
-    (cd "${UT_PROJ}"; UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" ${UTROOT}/scripts/watch.sh ${UTARGS})
+    UT_ARGS="${UT_ARGS}" UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" watch
+#    (cd "${UT_PROJ}"; UT_ARGS="${UT_ARGS}" UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" ${UTROOT}/tools/watch.sh)
 else
     echo "Error: Nothing done ?!"
     exit 1

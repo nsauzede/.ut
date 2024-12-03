@@ -7,9 +7,9 @@ The goal is to accelerate the Test Driven Development methodology.
 
 It is primarily focused on C/C++, under the form of a single header file,
 and is meant to be completely independent to the existing build framework,
-using a set a convenience scripts to automate the building and running of the tests.
+using a set a convenience tools to automate the building and running of the tests.
 
-Some scripts also offer some kind of Python support (using pytest under the hood).
+Some tools also offer some kind of Python support (using pytest under the hood).
 
 # How to use
 Include (quoted) `ut.h` single header inside any C or C++ file and add testcases like this:
@@ -69,7 +69,7 @@ The executable returns 0 if all test cases/methods pass.
 Some optional tools are provided, to accelerate the TDD-loop approach: red-green-refactor steps.
 
 1) a `Makefile` is provided to automatically clean/build/test all C/C++ adequate test files
-2) a `watch.sh` shell scripts constinuously monitors file-system changes and re-run modified tests
+2) a `watch.sh` shell script constinuously monitors file-system changes and re-run modified tests
 3) an `ut` shell script abstracts these `clean`, `test`, `watch`, ... commands. See `ut --help`
 4) `ut` supports Bash auto-completion; register it in `.bashrc` like so: `[ -x ~/ut_/ut ] && . ~/ut_/ut`
 (just adapt to where you did install the `ut_` repo on your system)

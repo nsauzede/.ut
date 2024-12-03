@@ -4,9 +4,16 @@
 * SPDX-License-Identifier: GPL-3.0-or-later
 */
 
-#include "basicmath.c"  // dummy dep
+extern "C" {
+#include "dummy/dummy.c"        // dummy dep
+}
 
 #include "ut.h"
+
+TESTMETHOD(test_dummy) {
+    ASSERT_EQ(42+1*0, dummy());
+}
+
 #include <vector>
 #include <string>
 #include <sstream>

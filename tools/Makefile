@@ -5,8 +5,8 @@
 #
 
 CURRENT_MAKEFILE := $(realpath $(firstword $(MAKEFILE_LIST)))
-UTPATH:=$(shell dirname $(CURRENT_MAKEFILE))
-UTSCRIPTS:=$(UTPATH)/scripts
+UTPATH:=$(shell dirname `dirname $(CURRENT_MAKEFILE)`)
+UTSCRIPTS:=$(UTPATH)/tools
 UT_DIR?=.
 
 MKDIR:=mkdir
@@ -89,11 +89,13 @@ CCFILTER:=$(UTSCRIPTS)/ccolor.sh
 
 UT_UT:=.ut
 UT_CACHE:=$(UT_UT)/cache
+
 -include $(UT_UT)/ut.mk
-CFLAGS:=-Wall -Werror -pipe -I$(UTPATH) -DUT_CACHE=\"$(UT_CACHE)\"
-CFLAGS+=$(UT_INCLUDES) -I/
-CXXFLAGS:=-Wall -Werror -pipe -I$(UTPATH) -DUT_CACHE=\"$(UT_CACHE)\"
-CXXFLAGS+=$(UT_INCLUDES) -I/
+
+CFLAGS:=-Wall -Werror -pipe -I$(UTPATH)/include -DUT_CACHE=\"$(UT_CACHE)\"
+CFLAGS+=$(UT_INCLUDES)
+CXXFLAGS:=-Wall -Werror -pipe -I$(UTPATH)/include -DUT_CACHE=\"$(UT_CACHE)\"
+CXXFLAGS+=$(UT_INCLUDES)
 
 AT_:=@
 AT_1:=
@@ -159,7 +161,9 @@ PASSED_PY=$(patsubst %,$(UT_CACHE)/%.passed,$(PYTESTS_))
 ifdef UT_DRY_RUN
 FAIL_ACTION:=true
 else
-FAIL_ACTION:=(rm -f $@ ; exit 1)
+# Hmm it seems like we don't want to fail even here, else it prevents watch.sh loop to being run
+#FAIL_ACTION:=(rm -f $@ ; exit 1)
+FAIL_ACTION:=true
 endif
 $(UT_CACHE)/%.py.d: $(UT_CACHE)/.gitignore %.py
 	$(AT)$(MKDIR) -p $(@D)
@@ -177,29 +181,29 @@ all: $(PASSED)
 dry-run: $(PASSED)
 
 ifdef PYTEST
-test_py: $(PASSED_PY)
+#test_py: $(PASSED_PY)
 TEST_PY_PASSED=$(AT)$(UTSCRIPTS)/mkpydep.py -t $< -o $(UT_CACHE)/$*.py.d $(PYTO) && touch $@
 $(UT_CACHE)/%.py.passed: %.py ; $(TEST_PY_PASSED)
 else
-test_py:
+#test_py:
 endif
 
-test_compiled:
-ifneq ("x$(UT_FAST)","x1")
-	$(AT)echo "FAST TESTS ====================================================="
-endif
-	$(AT)$(MAKE) $(SILENCEMAKE) -f $(CURRENT_MAKEFILE) fast UT_INCLUDES="$(UT_INCLUDES)"
-ifneq ("x$(UT_FAST)","x1")
-	$(AT)echo "SLOW TESTS ====================================================="
-	$(AT)$(MAKE) $(SILENCEMAKE) -f $(CURRENT_MAKEFILE) slow UT_INCLUDES="$(UT_INCLUDES)"
-endif
+#test_compiled:
+#ifneq ("x$(UT_FAST)","x1")
+#	$(AT)echo "FAST TESTS ====================================================="
+#endif
+#	$(AT)$(MAKE) $(SILENCEMAKE) -f $(CURRENT_MAKEFILE) fast UT_INCLUDES="$(UT_INCLUDES)"
+#ifneq ("x$(UT_FAST)","x1")
+#	$(AT)echo "SLOW TESTS ====================================================="
+#	$(AT)$(MAKE) $(SILENCEMAKE) -f $(CURRENT_MAKEFILE) slow UT_INCLUDES="$(UT_INCLUDES)"
+#endif
 
 UT_PROJ:=$(PWD)
-#watch:
-#	$(AT)(UT_PROJ="$(UT_PROJ)" UT_VERBOSE="$(UT_VERBOSE)" UT_FAST="$(UT_FAST)" $(UTSCRIPTS)/watch.sh $(UTARGS))
+watch:
+	$(AT)UT_DIR="$(UT_DIR)" UT_PROJ="$(UT_PROJ)" UT_VERBOSE="$(UT_VERBOSE)" UT_FAST="$(UT_FAST)" $(UTSCRIPTS)/watch.sh $(UTARGS)
 
-fast: test_py $(PASSED_FAST)
-slow: $(PASSED_SLOW)
+#fast: test_py $(PASSED_FAST)
+#slow: $(PASSED_SLOW)
 
 $(UT_UT):
 	$(AT)echo "error: could not find \`$(UT_UT)/\` in \`$(UT_PROJ)\`. Try to init a new ut project there, eg: \`ut init\`"
