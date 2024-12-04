@@ -70,13 +70,23 @@ function trytests {
 
 if [ $WIN32 = 1 ]; then
 # Windows
-${make} mrproper inww.exe || (echo "Can't build required inww.exe"; exit 1)
-trybuild "From scratch"
-${PYTEST} || exit 1
+RE='\(MODIFY\|CREATE\|ATTRIB\|MOVE\|DELETE\) .*\.\(c\|cpp\|h\|py\)$'
+if [ ! -x tools/inww.exe ]; then
+    cd ${UTROOT}
+    ${make} tools/inww.exe
+    if [ "x$?" != "x0" ]; then
+        echo "Can't build required inww.exe"
+        exit 1
+    fi
+    cd -
+fi
+trytests "BOOTSTRAP <all relevant files>" && tdd_status 0
 ################################################################################
-while true; do ./inww.exe | (while read changed ; do
-    echo "$changed" | grep "$RE" 2>&1 > /dev/null || continue
-    trybuild "$changed"
+while true; do ${UTROOT}/tools/inww.exe | (while read changed ; do
+#    echo "changed=${changed}"
+#    changed=`echo ${changed} | sed 's/\\\/\//'`
+#    echo "changed=${changed}"
+    echo "$changed" | grep "$RE" 2>&1 > /dev/null && trytests "$changed" #|| echo "NOPE.."
     done)
 done
 

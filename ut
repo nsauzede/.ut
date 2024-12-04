@@ -269,6 +269,7 @@ if [ ! -d "${UT_UT}" ]; then
     done
     UT_PROJ=${UT_PROJ0}
 fi
+UT_DIR=`realpath --relative-to="${UT_PROJ}" "${UT_DIR}"`
 
 if [ -n "${UT_OPTCLEAN}" -o -n "${DO_CLEAN}" ]; then
     UT_ARGS="${UT_ARGS}" UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" mrproper

@@ -106,8 +106,14 @@ SILENCEMAKE:=$(SILENCEMAKE_$(V))
 
 DEPS:=
 ifneq ($(MAKECMDGOALS),mrproper)
-C_TESTS:=$(shell realpath --relative-to=. `find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.c \) -exec grep -l '^#include "ut.h"' '{}' \;`)
-CPP_TESTS:=$(shell realpath --relative-to=. `find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.cpp \) -exec grep -l '^#include "ut.h"' '{}' \;`)
+C_TESTS:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.c \) -exec grep -l '^#include "ut.h"' '{}' \;)
+ifneq (x$(C_TESTS),x)
+C_TESTS:=$(shell realpath --relative-to=. $(C_TESTS))
+endif
+CPP_TESTS:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.cpp \) -exec grep -l '^#include "ut.h"' '{}' \;)
+ifneq (x$(CPP_TESTS),x)
+CPP_TESTS:=$(shell realpath --relative-to=. $(CPP_TESTS))
+endif
 DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(C_TESTS))
 DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(CPP_TESTS))
 endif
@@ -219,7 +225,11 @@ $(UT_CACHE)/%.cpp.d: $(UT_CACHE)/.gitignore %.cpp
 	    && (cat $@.orig | $(UTSCRIPTS)/mkdep.py $(PWD) > $@ ; \
 	        $(RM) $@.orig))
 
+ifeq (x$(V),x1)
+.PRECIOUS: $(EXES)
+else
 .INTERMEDIATE: $(EXES)
+endif
 
 BUILD_C_EXE=$(AT)($(CC) $*.c -o $@ $(CFLAGS) $(LDFLAGS) > $@.build 2>&1 || (cat $@.build | $(CCFILTER) ; $(RM) $@.build ; false) && $(RM) $@.build)
 $(UT_CACHE)/%.c.fast.exe: %.c ; $(BUILD_C_EXE)
@@ -246,6 +256,11 @@ $(UT_CACHE)/%.cpp.fast.passed: $(UT_CACHE)/%.cpp.fast.exe ; $(TEST_FAST_PASSED)
 $(UT_CACHE)/%.cpp.slow.passed: CXX=$(CXX_SLOW)
 $(UT_CACHE)/%.cpp.slow.passed: CXXFLAGS+=-g
 $(UT_CACHE)/%.cpp.slow.passed: $(UT_CACHE)/%.cpp.slow.exe ; $(TEST_SLOW_PASSED)
+
+tools/inww.exe: CFLAGS:=-Wall -Werror -O3
+tools/inww.exe: tools/inww.c
+	$(AT)gcc $(CFLAGS) -o $@ $< $(LDFLAGS)
+	$(AT)strip --strip-all $@
 
 mrproper:
 	$(AT)$(RM) -rf $(UT_CACHE)

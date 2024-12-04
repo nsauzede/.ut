@@ -15,9 +15,11 @@
 #include <time.h>
 #include <malloc.h>
 #include <setjmp.h>
+#ifdef __linux__
 #include <sys/ioctl.h>
+#endif
 
-#define UT_VERSION "0.0.7"
+#define UT_VERSION "0.0.8"
 
 #define CTOR __attribute((constructor))
 #define TRY() (setjmp(UnitTest.jmpbuf) == 0)
@@ -63,6 +65,7 @@ static struct UT_s {
     struct UT_s *next;
 } UnitTest, *ut_last, *ut_curr;
 
+#ifdef __linux__
 void ut_cap_init(struct UT_cap_s *cap, int fileno) {
     cap->fileno = fileno;
     cap->original_fd = -1;
@@ -98,6 +101,14 @@ void ut_cap_flush(struct UT_cap_s *cap) {
     }
     close(cap->std_pipe[0]);
 }
+#else
+void ut_cap_init(struct UT_cap_s *cap, int fileno) {}
+void ut_cap_start(struct UT_cap_s *cap) {}
+int ut_cap_bytes(struct UT_cap_s *cap) { return 0; }
+void ut_cap_stop(struct UT_cap_s *cap) {}
+void ut_cap_flush(struct UT_cap_s *cap) {}
+#endif
+
 void ut_add(const char *file, const char *met, const char *umet, void (*ptr)(), struct UT_s *test) {
     if (UnitTest.cls && strncmp(UnitTest.cls, "Test", 4))return;
     if (!met || strncmp(met, "test", 4))return;

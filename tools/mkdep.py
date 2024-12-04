@@ -6,6 +6,8 @@ import sys
 
 def mkdep(cachedir:str, inp:str)->str:
     outp = ""
+    inp = inp.replace("C:/","/c/")
+    inp = inp.replace("\r\n","\n")
     inp = inp.replace("\\\n","")
     inp = inp.replace("\n","")
     while "  " in inp:
