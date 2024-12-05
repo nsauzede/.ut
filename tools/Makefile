@@ -101,14 +101,13 @@ AT_:=@
 AT_1:=
 AT:=$(AT_$(V))
 SILENCEMAKE_:=-s
-#SILENCEMAKE_:=--no-print-directory
 SILENCEMAKE_1:=
 SILENCEMAKE:=$(SILENCEMAKE_$(V))
 
 DEPS:=
 ifneq ($(MAKECMDGOALS),mrproper)
-C_TESTS:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.c \) -exec grep -l '^#include "ut.h"' '{}' \;)
-CPP_TESTS:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.cpp \) -exec grep -l '^#include "ut.h"' '{}' \;)
+C_TESTS:=$(shell realpath --relative-to=. `find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.c \) -exec grep -l '^#include "ut.h"' '{}' \;`)
+CPP_TESTS:=$(shell realpath --relative-to=. `find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.cpp \) -exec grep -l '^#include "ut.h"' '{}' \;`)
 DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(C_TESTS))
 DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(CPP_TESTS))
 endif
@@ -181,29 +180,13 @@ all: $(PASSED)
 dry-run: $(PASSED)
 
 ifdef PYTEST
-#test_py: $(PASSED_PY)
 TEST_PY_PASSED=$(AT)$(UTSCRIPTS)/mkpydep.py -t $< -o $(UT_CACHE)/$*.py.d $(PYTO) && touch $@
 $(UT_CACHE)/%.py.passed: %.py ; $(TEST_PY_PASSED)
-else
-#test_py:
 endif
-
-#test_compiled:
-#ifneq ("x$(UT_FAST)","x1")
-#	$(AT)echo "FAST TESTS ====================================================="
-#endif
-#	$(AT)$(MAKE) $(SILENCEMAKE) -f $(CURRENT_MAKEFILE) fast UT_INCLUDES="$(UT_INCLUDES)"
-#ifneq ("x$(UT_FAST)","x1")
-#	$(AT)echo "SLOW TESTS ====================================================="
-#	$(AT)$(MAKE) $(SILENCEMAKE) -f $(CURRENT_MAKEFILE) slow UT_INCLUDES="$(UT_INCLUDES)"
-#endif
 
 UT_PROJ:=$(PWD)
 watch:
 	$(AT)UT_DIR="$(UT_DIR)" UT_PROJ="$(UT_PROJ)" UT_VERBOSE="$(UT_VERBOSE)" UT_FAST="$(UT_FAST)" $(UTSCRIPTS)/watch.sh $(UTARGS)
-
-#fast: test_py $(PASSED_FAST)
-#slow: $(PASSED_SLOW)
 
 $(UT_UT):
 	$(AT)echo "error: could not find \`$(UT_UT)/\` in \`$(UT_PROJ)\`. Try to init a new ut project there, eg: \`ut init\`"
@@ -231,7 +214,10 @@ $(UT_CACHE)/%.c.d: $(UT_CACHE)/.gitignore %.c
 
 $(UT_CACHE)/%.cpp.d: $(UT_CACHE)/.gitignore %.cpp
 	$(AT)$(MKDIR) -p $(@D) && \
-	(g++ -MM $(CFLAGS) $*.cpp | sed ':a;N;$$!ba;s/\\\n//g' > $@ 2>&1 || (cat $@ ; $(RM) $@ ; false) && (echo "$(UT_CACHE)/$*.cpp.fast.exe $(UT_CACHE)/$*.cpp.slow.exe:" `cat $@ | cut -d':' -f2` > $@))
+	(g++ -MM $(CXXFLAGS) $*.cpp > $@.orig 2>&1 \
+	    || (cat $@.orig | $(CCFILTER) ; $(RM) $@.orig ; false) \
+	    && (cat $@.orig | $(UTSCRIPTS)/mkdep.py $(PWD) > $@ ; \
+	        $(RM) $@.orig))
 
 .INTERMEDIATE: $(EXES)
 

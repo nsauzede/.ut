@@ -163,11 +163,9 @@ ${UTWATCH}) :
 esac
 UTARG=$1
 
-#echo "UTARG=${UTARG}"
 if [ "x${UTARG}" != "x" ]; then
     if [ -d "$UTARG" ]; then
-        UT_DIR=$(realpath ${UTARG})
-        #echo "UT_DIR=${UT_DIR}"
+        UT_DIR="${UTARG}"
         shift
         UTARG=$1
     fi
@@ -181,7 +179,6 @@ if [ "x${UTARG}" != "x" ]; then
         exit 1
     fi
 fi
-#echo "UT_ARGS=${UT_ARGS}"
 
 
 if [ -n "${DO_HELP}" ]; then
@@ -287,7 +284,6 @@ elif [ -n "${DO_RETEST}" ]; then
     UT_ARGS="${UT_ARGS}" UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" all
 elif [ -n "${DO_WATCH}" ]; then
     UT_ARGS="${UT_ARGS}" UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" watch
-#    (cd "${UT_PROJ}"; UT_ARGS="${UT_ARGS}" UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" ${UTROOT}/tools/watch.sh)
 else
     echo "Error: Nothing done ?!"
     exit 1

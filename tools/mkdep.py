@@ -12,7 +12,7 @@ def mkdep(cachedir:str, inp:str)->str:
         inp = inp.replace("  "," ")
     l=inp.split(': ')[1].split(' ')
     tgt = l[0]
-    tgts = f"{cachedir}/./{tgt}.fast.exe {cachedir}/./{tgt}.slow.exe"
+    tgts = f"{cachedir}/{tgt}.fast.exe {cachedir}/{tgt}.slow.exe"
     deps = []
     for p_ in l:
         p = Path(p_)

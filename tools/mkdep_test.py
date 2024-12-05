@@ -4,8 +4,8 @@ def test():
     utdir = "/home/nsauzede/perso/git/ut_"
     tstdir = "ut_tests/tests"
     tst = "test_list.c"
-    cache = f"${utdir}/.ut/cache"
-    tgts = f"{cache}/./{tstdir}/{tst}.fast.exe {cache}/./{tstdir}/{tst}.slow.exe"
+    cache = f"{utdir}/.ut/cache"
+    tgts = f"{cache}/{tstdir}/{tst}.fast.exe {cache}/{tstdir}/{tst}.slow.exe"
     inps = [
         f"""test_list.o: {tstdir}/{tst} \\
 {tstdir}/../../include/list.h {tstdir}/../../src/list.c \\

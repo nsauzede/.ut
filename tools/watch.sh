@@ -6,7 +6,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-#UTARGS=$*
 RE='\(CREATE\|ATTRIB\|MOVE\|DELETE\) .*\.\(c\|cpp\|h\|py\)$'
 
 SCRIPTSDIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
@@ -62,7 +61,7 @@ function change_detected {
 function trytests {
     UT_PROJ="${UT_PROJ}" UT_INCLUDES="${UT_INCLUDES}" ${make} --dry-run all UT_DRY_RUN=1| grep -q . || return 0
     change_detected "$1"
-    UT_PROJ="${UT_PROJ}" UT_INCLUDES="${UT_INCLUDES}" UT_FAST="${UT_FAST}" ${make} ${UTARGS}
+    UT_PROJ="${UT_PROJ}" UT_INCLUDES="${UT_INCLUDES}" UT_FAST="${UT_FAST}" ${make}
     ret=$?
     tdd_status $ret
 #    return $ret
@@ -95,7 +94,6 @@ inotifywait -q --recursive --monitor --format "%e %w%f" \
 --exclude '#' \
 --event ${evlist} ${UT_PROJ} ${UTROOT} \
 | while read changed; do
-#    echo "changed=${changed}"
     echo "$changed" | grep "$RE" 2>&1 > /dev/null && trytests "$changed"
 done
 
