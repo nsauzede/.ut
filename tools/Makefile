@@ -102,13 +102,14 @@ SILENCEMAKE_:=-s
 SILENCEMAKE_1:=
 SILENCEMAKE:=$(SILENCEMAKE_$(V))
 
+UT_IHDR:='^\#include "ut.h"'
 DEPS:=
 ifneq ($(MAKECMDGOALS),mrproper)
-C_TESTS:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.c \) -exec grep -l '^\#include "ut.h"' '{}' \;)
+C_TESTS:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.c \) -exec grep -l $(UT_IHDR) '{}' \;)
 ifneq (x$(C_TESTS),x)
 C_TESTS:=$(shell realpath --relative-to=. $(C_TESTS))
 endif
-CPP_TESTS:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.cpp \) -exec grep -l '^\#include "ut.h"' '{}' \;)
+CPP_TESTS:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.cpp \) -exec grep -l $(UT_IHDR) '{}' \;)
 ifneq (x$(CPP_TESTS),x)
 CPP_TESTS:=$(shell realpath --relative-to=. $(CPP_TESTS))
 endif
