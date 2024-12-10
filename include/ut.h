@@ -14,41 +14,15 @@
 #include <time.h>
 #include <malloc.h>
 #include <setjmp.h>
-#if defined(_WIN32) && (defined(__clang__) || defined(__TINYC__))
-//#define _CRT_SECURE_NO_WARNINGS
-//#define _CRT_NONSTDC_DEPRECATE
-#ifdef __cplusplus
-extern "C" {
-#endif
-#ifndef CLOCK_MONOTONIC
-#define CLOCK_MONOTONIC UT_CLOCK_MONOTONIC
-#define clock_gettime ut_clock_gettime
-#define timespec ut_timespec
-typedef enum {UT_CLOCK_MONOTONIC} ut_clockid_t;
-typedef struct ut_timespec{int tv_sec, tv_nsec;} ut_timespec_t;
-static int
-ut_clock_gettime(ut_clockid_t clockid, struct ut_timespec *tp) {
-    if (tp) {
-        tp->tv_sec = tp->tv_nsec = 0;
-    }
-    return 0;
-}
-#endif
-char *getcwd(char *buf, size_t size);
-#ifndef STDOUT_FILENO
-#define STDOUT_FILENO 1
-#endif
-#ifndef STDERR_FILENO
-#define STDERR_FILENO 2
-#endif
-#ifdef __cplusplus
-}
-#endif
+
+#ifdef _WIN32
+#include <direct.h>     // _getcwd
+#include <io.h>         // _pipe, _dup, _dup2
+#include <fcntl.h>      // _O_TEXT, _O_BINARY
+#include <windows.h>    // PeekNamedPipe
 #else
-#include <unistd.h>
-#endif
-#ifdef __linux__
-#include <sys/ioctl.h>
+#include <unistd.h>     // getcwd
+#include <sys/ioctl.h>  // ioctl
 #endif
 
 #define UT_VERSION "0.0.9"
@@ -83,6 +57,52 @@ char *getcwd(char *buf, size_t size);
 extern "C" {
 #endif
 
+#ifdef _WIN32
+#define ut_ssize_t long
+#ifndef FIONREAD
+#define FIONREAD 0x541B
+#endif
+#define ut_getcwd _getcwd
+#define ut_pipe(fdp) _pipe(fdp, 1024, _O_BINARY)
+#define ut_dup(fd) _dup(fd)
+#define ut_dup2(fd1, fd2) _dup2(fd1, fd2)
+#define ut_read(fd, buf, size) _read(fd, buf, size)
+#define ut_close(fd) _close(fd)
+#define ut_ioctl(fd, op, ptr) ut_fake_ioctl(fd, op, ptr)
+#else
+#define ut_getcwd getcwd
+#define ut_ssize_t ssize_t
+#define ut_pipe pipe
+#define ut_dup dup
+#define ut_dup2 dup2
+#define ut_read read
+#define ut_close close
+#define ut_ioctl ioctl
+#endif
+
+#if defined(_WIN32) && (defined(__clang__) || defined(__TINYC__))
+#ifndef STDOUT_FILENO
+#define STDOUT_FILENO 1
+#endif
+#ifndef STDERR_FILENO
+#define STDERR_FILENO 2
+#endif
+#ifndef CLOCK_MONOTONIC
+#define CLOCK_MONOTONIC UT_CLOCK_MONOTONIC
+#define clock_gettime ut_clock_gettime
+#define timespec ut_timespec
+typedef enum {UT_CLOCK_MONOTONIC} ut_clockid_t;
+typedef struct ut_timespec{int tv_sec, tv_nsec;} ut_timespec_t;
+static int
+ut_clock_gettime(ut_clockid_t clockid, struct ut_timespec *tp) {
+    if (tp) {
+        tp->tv_sec = tp->tv_nsec = 0;
+    }
+    return 0;
+}
+#endif
+#endif
+
 struct UT_cap_s {
     int fileno, original_fd, std_pipe[2];
 };
@@ -97,7 +117,16 @@ static struct UT_s {
     struct UT_s *next;
 } UT, *ut_last, *ut_curr;
 
-#ifdef __linux__
+#ifdef _WIN32
+int ut_fake_ioctl(int fd, unsigned long op, int *ptr) {
+    DWORD val = 0;
+    if (op == FIONREAD) {
+        PeekNamedPipe((HANDLE)_get_osfhandle(fd), NULL, 0, NULL, &val, NULL);
+    }
+    if (ptr) *ptr = val;
+    return 0;
+}
+#endif
 void ut_cap_init(struct UT_cap_s *cap, int fileno) {
     cap->fileno = fileno;
     cap->original_fd = -1;
@@ -105,42 +134,34 @@ void ut_cap_init(struct UT_cap_s *cap, int fileno) {
     cap->std_pipe[1] = -1;
 }
 void ut_cap_start(struct UT_cap_s *cap) {
-    cap->original_fd = dup(cap->fileno);
-    pipe(cap->std_pipe);
-    dup2(cap->std_pipe[1], cap->fileno);
-    close(cap->std_pipe[1]);
+    cap->original_fd = ut_dup(cap->fileno);
+    ut_pipe(cap->std_pipe);
+    ut_dup2(cap->std_pipe[1], cap->fileno);
+    ut_close(cap->std_pipe[1]);
+}
+void ut_cap_stop(struct UT_cap_s *cap) {
+    if (cap->original_fd != -1) {
+        ut_dup2(cap->original_fd, cap->fileno);
+        ut_close(cap->original_fd);
+    }
 }
 int ut_cap_bytes(struct UT_cap_s *cap) {
     int bytes = 0;
     if (cap->std_pipe[0] != -1) {
-        ioctl(cap->std_pipe[0], FIONREAD, &bytes);
+        ut_ioctl(cap->std_pipe[0], FIONREAD, &bytes);
     }
     return bytes;
-}
-void ut_cap_stop(struct UT_cap_s *cap) {
-    if (cap->original_fd != -1) {
-        dup2(cap->original_fd, cap->fileno);
-        close(cap->original_fd);
-    }
 }
 void ut_cap_flush(struct UT_cap_s *cap) {
     while (1) {
         char buf[1024];
-        ssize_t count = read(cap->std_pipe[0], buf, sizeof(buf) - 1);
+        ut_ssize_t count = ut_read(cap->std_pipe[0], buf, sizeof(buf) - 1);
         if (count <= 0)break;
         buf[count] = 0;
         printf("%s", buf);
     }
-    close(cap->std_pipe[0]);
+    ut_close(cap->std_pipe[0]);
 }
-#else
-void ut_cap_init(struct UT_cap_s *cap, int fileno) {}
-void ut_cap_start(struct UT_cap_s *cap) {}
-int ut_cap_bytes(struct UT_cap_s *cap) { return 0; }
-void ut_cap_stop(struct UT_cap_s *cap) {}
-void ut_cap_flush(struct UT_cap_s *cap) {}
-#endif
-
 void ut_add(const char *file, const char *met, const char *umet, void (*ptr)(), struct UT_s *test) {
     if (UT.cls && strncmp(UT.cls, "Test", 4))return;
     if (!met || strncmp(met, "test", 4))return;
@@ -293,7 +314,7 @@ int ut_main_(int argc, char *argv[]) {
     const char *ut_cache = UT_CACHE;
     printf("cachedir: %s\n", ut_cache);
 #endif
-    char *cwd = getcwd(NULL, 0);
+    char *cwd = ut_getcwd(NULL, 0);
     printf("rootdir: %s\n", cwd);
     free(cwd);
     printf(BWHITE "collected %d items\n" NRM, ntests);

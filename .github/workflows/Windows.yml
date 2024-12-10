@@ -1,24 +1,35 @@
 name: Windows
 on:
-  - push
-  - pull_request
-  - workflow_dispatch
+  push:
+    branches:
+        - main
+        - f/*
+  pull_request:
+    branches:
+        - main
 
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v3
-      - name: setup-msys2
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
+    - name: Check out the code
+      uses: actions/checkout@v3
+
+    - name: setup msys2
+      uses: msys2/setup-msys2@v2
+      with:
           update: true
-          install: git bash msys/make gcc python python-pytest mingw64/mingw-w64-x86_64-clang
-      - name: setup-tcc
+          install: base-devel mingw-w64-x86_64-toolchain git bash msys/make mingw64/mingw-w64-x86_64-gcc msys/python msys/python-pytest mingw64/mingw-w64-x86_64-clang
+
+    - name: setup-tcc
         run: |
           bash tools/install_tcc.sh
-      - name: Build and test
+
+    - name: Build and test
         run: |
-          bash -c "(export TCC=tinycc/the_install/tcc.exe ; bash -c './ut retest')"
+          bash -c "(export _V=1 TCC=tinycc/the_install/tcc.exe ; bash -c './ut -v retest')"
+          bash -c "(pytest --version ; pacman -Ss make|grep '\[installed' ; pacman -Ss gcc|grep '\[installed' ; pacman -Ss clang|grep '\[installed' ; clang++ --version ; g++ --version ; rm -f .ut/cache/examples/test_gilded_rose.cpp.fast.exe ; make -f tools/Makefile .ut/cache/examples/test_gilded_rose.cpp.fast.exe ; .ut/cache/examples/test_gilded_rose.cpp.fast.exe -v -s)"
+          pacman -Ss clang|grep '\[installed'
+          clang++.exe --version
+          clang++ --version
