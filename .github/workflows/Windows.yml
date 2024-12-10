@@ -9,16 +9,20 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v3
-      - name: setup-msys2
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: true
-          install: git bash msys/make gcc python python-pytest mingw64/mingw-w64-x86_64-clang
-      - name: setup-tcc
-        run: |
-          bash tools/install_tcc.sh
-      - name: Build and test
-        run: |
-          bash -c "(export TCC=tinycc/the_install/tcc.exe ; bash -c './ut retest')"
+    - name: Check out the code
+      uses: actions/checkout@v3
+
+    - name: setup msys2
+      uses: msys2/setup-msys2@v2
+      with:
+        update: true
+        install: git bash msys/make mingw64/mingw-w64-x86_64-gcc msys/python msys/python-pytest mingw64/mingw-w64-x86_64-clang
+
+    - name: setup-tcc
+      run: |
+        bash tools/install_tcc.sh
+
+    - name: Build and test
+      shell: msys2 {0}
+      run: |
+        TCC=tinycc/the_install/tcc.exe ./ut retest

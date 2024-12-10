@@ -31,13 +31,13 @@ ifneq (0, $(shell command -v $(CLANG) > /dev/null 2>&1 ; echo $$?))
 CLANG:=
 endif
 
-G++?=g++
-ifneq (0, $(shell command -v $(G++) > /dev/null 2>&1 ; echo $$?))
-G++:=
+GXX?=g++
+ifneq (0, $(shell command -v $(GXX) > /dev/null 2>&1 ; echo $$?))
+GXX:=
 endif
-CLANG++?=clang++
-ifneq (0, $(shell command -v $(CLANG++) > /dev/null 2>&1 ; echo $$?))
-CLANG++:=
+CLANGXX?=clang++
+ifneq (0, $(shell command -v $(CLANGXX) > /dev/null 2>&1 ; echo $$?))
+CLANGXX:=
 endif
 
 ifdef TCC
@@ -64,19 +64,19 @@ else
     endif
 endif
 
-ifdef G++
-    CXX_FAST:=$(G++)
+ifdef GXX
+    CXX_FAST:=$(GXX)
 else
-    ifdef CLANG++
-        CXX_FAST:=$(CLANG)
+    ifdef CLANGXX
+        CXX_FAST:=$(CLANGXX)
     endif
 endif
 
-ifdef CLANG++
-    CXX_SLOW:=$(CLANG++)
+ifdef CLANGXX
+    CXX_SLOW:=$(CLANGXX)
 else
-    ifdef G++
-        CXX_SLOW:=$(G++)
+    ifdef GXX
+        CXX_SLOW:=$(GXX)
     endif
 endif
 ifdef CC_FAST
