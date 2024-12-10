@@ -1,0 +1,17 @@
+name: Linux
+on:
+  - push
+  - pull_request
+  - workflow_dispatch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install dependencies
+        run: sudo apt update && sudo apt install --quiet -y bash make gcc g++ clang tcc python3 python3-pytest valgrind
+      - name: Build and test
+        run: |
+          ./ut retest
