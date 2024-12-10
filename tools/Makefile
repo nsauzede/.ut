@@ -11,34 +11,34 @@ UT_DIR?=.
 
 MKDIR:=mkdir
 VALGRIND:=valgrind
-ifneq (0, $(shell $(VALGRIND) --version > /dev/null 2>&1 ; echo $$?))
+ifneq (0, $(shell command -v $(VALGRIND) > /dev/null 2>&1 ; echo $$?))
 VALGRIND:=
 endif
 PYTEST:=pytest
-ifneq (0, $(shell $(PYTEST) --version > /dev/null 2>&1 ; echo $$?))
+ifneq (0, $(shell command -v $(PYTEST) > /dev/null 2>&1 ; echo $$?))
 PYTEST:=
 endif
 TCC:=tcc
-#ifneq (0, $(shell $(TCC) --version > /dev/null 2>&1 ; echo $$?))
+ifneq (0, $(shell command -v $(TCC) > /dev/null 2>&1 ; echo $$?))
 ifneq (0, $(shell $(TCC) -MM /dev/null > /dev/null 2>&1 ; echo $$?))
 TCC:=
 endif
-#endif
+endif
 GCC:=gcc
-ifneq (0, $(shell $(GCC) --version > /dev/null 2>&1 ; echo $$?))
+ifneq (0, $(shell command -v $(GCC) > /dev/null 2>&1 ; echo $$?))
 GCC:=
 endif
 CLANG:=clang
-ifneq (0, $(shell $(CLANG) --version > /dev/null 2>&1 ; echo $$?))
+ifneq (0, $(shell command -v $(CLANG) > /dev/null 2>&1 ; echo $$?))
 CLANG:=
 endif
 
 G++:=g++
-ifneq (0, $(shell $(G++) --version > /dev/null 2>&1 ; echo $$?))
+ifneq (0, $(shell command -v $(G++) > /dev/null 2>&1 ; echo $$?))
 G++:=
 endif
 CLANG++:=clang++
-ifneq (0, $(shell $(CLANG++) --version > /dev/null 2>&1 ; echo $$?))
+ifneq (0, $(shell command -v $(CLANG++) > /dev/null 2>&1 ; echo $$?))
 CLANG++:=
 endif
 

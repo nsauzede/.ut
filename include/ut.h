@@ -19,7 +19,7 @@
 #include <sys/ioctl.h>
 #endif
 
-#define UT_VERSION "0.0.8"
+#define UT_VERSION "0.0.9"
 
 #define CTOR __attribute((constructor))
 #define TRY() (setjmp(UnitTest.jmpbuf) == 0)
@@ -229,6 +229,8 @@ int ut_main_(int argc, char *argv[]) {
     const char *platform =
 #ifdef __linux__
     "linux"
+#elif defined WIN32
+    "win32"
 #else
     "unknown"
 #endif
