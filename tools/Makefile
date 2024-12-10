@@ -10,34 +10,32 @@ UTSCRIPTS:=$(UTPATH)/tools
 UT_DIR?=.
 
 MKDIR:=mkdir
-VALGRIND:=valgrind
+VALGRIND?=valgrind
 ifneq (0, $(shell command -v $(VALGRIND) > /dev/null 2>&1 ; echo $$?))
 VALGRIND:=
 endif
-PYTEST:=pytest
+PYTEST?=pytest
 ifneq (0, $(shell command -v $(PYTEST) > /dev/null 2>&1 ; echo $$?))
 PYTEST:=
 endif
-TCC:=tcc
+TCC?=tcc
 ifneq (0, $(shell command -v $(TCC) > /dev/null 2>&1 ; echo $$?))
-ifneq (0, $(shell $(TCC) -MM /dev/null > /dev/null 2>&1 ; echo $$?))
 TCC:=
 endif
-endif
-GCC:=gcc
+GCC?=gcc
 ifneq (0, $(shell command -v $(GCC) > /dev/null 2>&1 ; echo $$?))
 GCC:=
 endif
-CLANG:=clang
+CLANG?=clang
 ifneq (0, $(shell command -v $(CLANG) > /dev/null 2>&1 ; echo $$?))
 CLANG:=
 endif
 
-G++:=g++
+G++?=g++
 ifneq (0, $(shell command -v $(G++) > /dev/null 2>&1 ; echo $$?))
 G++:=
 endif
-CLANG++:=clang++
+CLANG++?=clang++
 ifneq (0, $(shell command -v $(CLANG++) > /dev/null 2>&1 ; echo $$?))
 CLANG++:=
 endif
@@ -106,11 +104,11 @@ SILENCEMAKE:=$(SILENCEMAKE_$(V))
 
 DEPS:=
 ifneq ($(MAKECMDGOALS),mrproper)
-C_TESTS:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.c \) -exec grep -l '^#include "ut.h"' '{}' \;)
+C_TESTS:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.c \) -exec grep -l '^\#include "ut.h"' '{}' \;)
 ifneq (x$(C_TESTS),x)
 C_TESTS:=$(shell realpath --relative-to=. $(C_TESTS))
 endif
-CPP_TESTS:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.cpp \) -exec grep -l '^#include "ut.h"' '{}' \;)
+CPP_TESTS:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.cpp \) -exec grep -l '^\#include "ut.h"' '{}' \;)
 ifneq (x$(CPP_TESTS),x)
 CPP_TESTS:=$(shell realpath --relative-to=. $(CPP_TESTS))
 endif

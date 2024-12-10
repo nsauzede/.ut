@@ -7,14 +7,46 @@
 * SPDX-License-Identifier: GPL-3.0-or-later
 */
 
-#include <stdarg.h>
-#include <unistd.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
 #include <malloc.h>
 #include <setjmp.h>
+#if defined(_WIN32) && (defined(__clang__) || defined(__TINYC__))
+//#define _CRT_SECURE_NO_WARNINGS
+//#define _CRT_NONSTDC_DEPRECATE
+#ifdef __cplusplus
+extern "C" {
+#endif
+#ifndef CLOCK_MONOTONIC
+#define CLOCK_MONOTONIC UT_CLOCK_MONOTONIC
+#define clock_gettime ut_clock_gettime
+#define timespec ut_timespec
+typedef enum {UT_CLOCK_MONOTONIC} ut_clockid_t;
+typedef struct ut_timespec{int tv_sec, tv_nsec;} ut_timespec_t;
+static int
+ut_clock_gettime(ut_clockid_t clockid, struct ut_timespec *tp) {
+    if (tp) {
+        tp->tv_sec = tp->tv_nsec = 0;
+    }
+    return 0;
+}
+#endif
+char *getcwd(char *buf, size_t size);
+#ifndef STDOUT_FILENO
+#define STDOUT_FILENO 1
+#endif
+#ifndef STDERR_FILENO
+#define STDERR_FILENO 2
+#endif
+#ifdef __cplusplus
+}
+#endif
+#else
+#include <unistd.h>
+#endif
 #ifdef __linux__
 #include <sys/ioctl.h>
 #endif
@@ -22,8 +54,8 @@
 #define UT_VERSION "0.0.9"
 
 #define CTOR __attribute((constructor))
-#define TRY() (setjmp(UnitTest.jmpbuf) == 0)
-#define THROW() do{longjmp(UnitTest.jmpbuf, 1);}while(0)
+#define TRY() (setjmp(UT.jmpbuf) == 0)
+#define THROW() do{longjmp(UT.jmpbuf, 1);}while(0)
 #define RED "\x1b[0;31m"
 #define BRED "\x1b[1;31m"
 #define GRN "\x1b[0;32m"
@@ -33,7 +65,7 @@
 #define BWHITE "\x1b[1;37m"
 #define BLUE "\x1b[1;34m"
 #define NRM "\x1b[0m"
-#define SETCLASS(_cls) UnitTest.cls=#_cls
+#define SETCLASS(_cls) UT.cls=#_cls
 #define JOIN_(x, y) x##y
 #define JOIN(x, y) JOIN_(x, y)
 #define UMET(met) JOIN(JOIN(L,__LINE__),_##met)
@@ -63,7 +95,7 @@ static struct UT_s {
     int disabled;
     struct UT_cap_s cap_stdout, cap_stderr;
     struct UT_s *next;
-} UnitTest, *ut_last, *ut_curr;
+} UT, *ut_last, *ut_curr;
 
 #ifdef __linux__
 void ut_cap_init(struct UT_cap_s *cap, int fileno) {
@@ -110,12 +142,12 @@ void ut_cap_flush(struct UT_cap_s *cap) {}
 #endif
 
 void ut_add(const char *file, const char *met, const char *umet, void (*ptr)(), struct UT_s *test) {
-    if (UnitTest.cls && strncmp(UnitTest.cls, "Test", 4))return;
+    if (UT.cls && strncmp(UT.cls, "Test", 4))return;
     if (!met || strncmp(met, "test", 4))return;
-    if (!ut_last)ut_last = &UnitTest;
+    if (!ut_last)ut_last = &UT;
     ut_last->next = test;
     ut_last = test;
-    test->cls = UnitTest.cls;
+    test->cls = UT.cls;
     test->met = met;
     test->umet = umet;
     test->file = file;
@@ -134,6 +166,7 @@ int ut_assert(const char *file, int line, const char *func, const char *expr_str
 }
 int ut_get_term_width() {
     int width = 80;
+#if !(defined(_WIN32) && defined(__clang__))
     if (getenv("TERM")) {
         char buf[1024] = "tput cols";
         FILE *p = popen(buf, "r");
@@ -144,6 +177,7 @@ int ut_get_term_width() {
             pclose(p);
         }
     }
+#endif
     return width;
 }
 void ut_print_centered(int columns, const char *color, const char sep, const char *fmt, ...) {
@@ -216,10 +250,10 @@ int ut_main_(int argc, char *argv[]) {
     int failed = 0;
     int passed = 0;
     int width = ut_get_term_width();
-    setbuf(stdout, 0);
-    setbuf(stderr, 0);
+    setvbuf(stdout, NULL, _IONBF, 0);
+    setvbuf(stderr, NULL, _IONBF, 0);
     int ntests = 0;
-    struct UT_s *ut = UnitTest.next;
+    struct UT_s *ut = UT.next;
     while (ut) {
         ntests++;
         ut = ut->next;
@@ -229,7 +263,7 @@ int ut_main_(int argc, char *argv[]) {
     const char *platform =
 #ifdef __linux__
     "linux"
-#elif defined WIN32
+#elif defined _WIN32
     "win32"
 #else
     "unknown"
@@ -267,7 +301,7 @@ int ut_main_(int argc, char *argv[]) {
     }
     const char *last_file = 0;
     int vcolumn = 0;
-    ut = UnitTest.next;
+    ut = UT.next;
     struct timespec ts0, ts1;
     clock_gettime(CLOCK_MONOTONIC, &ts0);
     while (ut) {
@@ -362,7 +396,7 @@ int ut_main_(int argc, char *argv[]) {
     }
     printf("\n");
     ut_print_centered(width, NRM, '=', "FAILURES");
-    ut = UnitTest.next;
+    ut = UT.next;
     while (ut) {
         if (ut->disabled){
             ut = ut->next;
@@ -388,7 +422,7 @@ int ut_main_(int argc, char *argv[]) {
         ut = ut->next;
     }
     ut_print_centered(width, CYAN, '=', "short test summary info");
-    ut = UnitTest.next;
+    ut = UT.next;
     while (ut) {
         if (ut->disabled){
             ut = ut->next;
