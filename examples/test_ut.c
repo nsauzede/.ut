@@ -6,6 +6,7 @@
 
 #include "ut.h"
 
+#ifndef _WIN32
 #include <stdbool.h>
 TESTCASE(Test_possible_memleak)
     TESTMETHOD(test_intentional_memleak) {
@@ -16,6 +17,8 @@ TESTCASE(Test_possible_memleak)
         }
         ASSERT(true);
     }
+#endif
+
 TESTCASE(Test_generic)
     TESTMETHOD(test_int) {
         ASSERT_EQ(1, 1-1*0);

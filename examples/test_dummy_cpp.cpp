@@ -40,7 +40,6 @@ public:
         if (!ret) {
             std::ostringstream oss;
             oss << "ASSERT(" << to_str() << " == " << other.to_str() << ")";
-            //UnitTest::op_failed(oss.str());
             fprintf(stderr, "%s\n", oss.str().c_str());
         }
         return ret;

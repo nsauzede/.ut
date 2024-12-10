@@ -1,4 +1,6 @@
 # UT
+[![Build Status][WorkflowBadgeLinux]][WorkflowUrl] [![Build Status][WorkflowBadgeWindows]][WorkflowUrl]
+
 ![Cle d'UT](res/images/ut.png)
 
 Simple and fast Unit Test framework.
@@ -135,3 +137,7 @@ It is also recommended to install those too:
 - `pytest`
 - `tcc`, `clang`
 - `valgrind`
+
+[WorkflowBadgeLinux]: https://github.com/nsauzede/ut_/workflows/Linux/badge.svg
+[WorkflowBadgeWindows]: https://github.com/nsauzede/ut_/workflows/Windows/badge.svg
+[WorkflowUrl]: https://github.com/nsauzede/ut_/commits/main
