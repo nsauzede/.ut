@@ -88,6 +88,11 @@ CCFILTER:=$(UTSCRIPTS)/ccolor.sh
 UT_UT:=.ut
 UT_CACHE:=$(UT_UT)/cache
 
+UT_3P:=$(UT_UT)/.3p
+UT_GT:=$(UT_3P)/googletest
+GTI:=$(UT_GT)/googletest/include
+GTL:=$(UT_GT)/build/lib
+
 -include $(UT_UT)/ut.mk
 
 CFLAGS:=-Wall -Werror -pipe -I$(UTPATH)/include -DUT_CACHE=\"$(UT_CACHE)\"
@@ -102,7 +107,7 @@ SILENCEMAKE_:=-s
 SILENCEMAKE_1:=
 SILENCEMAKE:=$(SILENCEMAKE_$(V))
 
-UT_IHDR:='^\#include.*"ut/ut.h"'
+UT_IHDR:='^\#include.*ut/ut.h'
 DEPS:=
 ifneq ($(MAKECMDGOALS),mrproper)
 UT_C_TESTS:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.c \) -exec grep -l $(UT_IHDR) '{}' \;)
@@ -117,6 +122,15 @@ DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(UT_C_TESTS))
 DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(UT_CPP_TESTS))
 endif
 
+GT_IHDR:='^\#include.*gtest/gtest.h'
+ifneq ($(MAKECMDGOALS),mrproper)
+GT_CC_TESTS:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.cc \) -exec grep -l $(GT_IHDR) '{}' \;)
+ifneq (x$(GT_CC_TESTS),x)
+GT_CC_TESTS:=$(shell realpath --relative-to=. $(GT_CC_TESTS))
+endif
+DEPS+=$(patsubst %,$(UT_CACHE)/%.gt.d,$(GT_CC_TESTS))
+endif
+
 EXES:=
 PASSED_FAST:=
 PASSED_SLOW:=
@@ -128,6 +142,9 @@ endif
 ifdef CXX_FAST
 EXES+=$(patsubst %,$(UT_CACHE)/%.fast.exe,$(UT_CPP_TESTS))
 PASSED_FAST+=$(patsubst %,$(UT_CACHE)/%.fast.passed,$(UT_CPP_TESTS))
+
+EXES+=$(patsubst %,$(UT_CACHE)/%.fast.exe,$(GT_CC_TESTS))
+PASSED_FAST+=$(patsubst %,$(UT_CACHE)/%.fast.gt.passed,$(GT_CC_TESTS))
 endif
 
 ifdef CC_SLOW
@@ -153,6 +170,9 @@ endif
 
 ifeq ("x$(UT_VERBOSE)", "x1")
 UTO:=-v
+GTO:=
+else
+GTO:=--gtest_brief=1
 endif
 
 ifdef PYTEST
@@ -210,6 +230,11 @@ $(UT_CACHE)/.gitignore: $(UT_UT)
 	echo "" >> $(UT_CACHE)/README.md && \
 	echo "See [the docs](https://github.com/nsauzede/ut_/blob/main/README.md) for more information." >> $(UT_CACHE)/README.md
 
+$(UT_GT):
+	$(AT)$(MKDIR) -p $(@D) && \
+	(cd $(@D) && git clone https://github.com/google/googletest.git && \
+	    cd googletest && mkdir build && cd build && cmake .. && make)
+
 $(UT_CACHE)/%.c.d: $(UT_CACHE)/.gitignore %.c
 	$(AT)$(MKDIR) -p $(@D) && \
 	(gcc -MM $(CFLAGS) $*.c > $@.orig 2>&1 \
@@ -220,6 +245,13 @@ $(UT_CACHE)/%.c.d: $(UT_CACHE)/.gitignore %.c
 $(UT_CACHE)/%.cpp.d: $(UT_CACHE)/.gitignore %.cpp
 	$(AT)$(MKDIR) -p $(@D) && \
 	(g++ -MM $(CXXFLAGS) $*.cpp > $@.orig 2>&1 \
+	    || (cat $@.orig | $(CCFILTER) ; $(RM) $@.orig ; false) \
+	    && (cat $@.orig | $(UTSCRIPTS)/mkdep.py $(PWD) > $@ ; \
+	        $(RM) $@.orig))
+
+$(UT_CACHE)/%.cc.gt.d: $(UT_CACHE)/.gitignore $(UT_GT) %.cc
+	$(AT)$(MKDIR) -p $(@D) && \
+	(g++ -MM $(CXXFLAGS) $*.cc > $@.orig 2>&1 \
 	    || (cat $@.orig | $(CCFILTER) ; $(RM) $@.orig ; false) \
 	    && (cat $@.orig | $(UTSCRIPTS)/mkdep.py $(PWD) > $@ ; \
 	        $(RM) $@.orig))
@@ -238,6 +270,10 @@ BUILD_CPP_EXE=$(AT)$(CXX) $*.cpp -o $@ $(CXXFLAGS) $(LDFLAGS)
 $(UT_CACHE)/%.cpp.fast.exe: %.cpp ; $(BUILD_CPP_EXE)
 $(UT_CACHE)/%.cpp.slow.exe: %.cpp ; $(BUILD_CPP_EXE)
 
+BUILD_CC_EXE=$(AT)$(CXX) $*.cc -o $@ $(CXXFLAGS) $(LDFLAGS)
+$(UT_CACHE)/%.cc.fast.exe: %.cc ; $(BUILD_CC_EXE)
+$(UT_CACHE)/%.cc.slow.exe: %.cc ; $(BUILD_CC_EXE)
+
 TEST_FAST_PASSED=$(AT)./$< $(UTO) && touch $@
 $(UT_CACHE)/%.c.fast.passed: CC=$(CC_FAST)
 $(UT_CACHE)/%.c.fast.passed: CFLAGS+=-O0
@@ -251,6 +287,12 @@ $(UT_CACHE)/%.c.slow.passed: $(UT_CACHE)/%.c.slow.exe ; $(TEST_SLOW_PASSED)
 $(UT_CACHE)/%.cpp.fast.passed: CXX=$(CXX_FAST)
 $(UT_CACHE)/%.cpp.fast.passed: CXXFLAGS+=-O0
 $(UT_CACHE)/%.cpp.fast.passed: $(UT_CACHE)/%.cpp.fast.exe ; $(TEST_FAST_PASSED)
+
+$(UT_CACHE)/%.cc.fast.gt.passed: CXX=$(CXX_FAST)
+$(UT_CACHE)/%.cc.fast.gt.passed: CXXFLAGS+=-O0 -I$(GTI)
+$(UT_CACHE)/%.cc.fast.gt.passed: LDFLAGS+=-L$(GTL) -lgtest -lgtest_main
+$(UT_CACHE)/%.cc.fast.gt.passed: UTO=$(GTO)
+$(UT_CACHE)/%.cc.fast.gt.passed: $(UT_CACHE)/%.cc.fast.exe ; $(TEST_FAST_PASSED)
 
 $(UT_CACHE)/%.cpp.slow.passed: CXX=$(CXX_SLOW)
 $(UT_CACHE)/%.cpp.slow.passed: CXXFLAGS+=-g
