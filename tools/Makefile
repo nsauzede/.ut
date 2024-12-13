@@ -30,6 +30,10 @@ CLANG?=clang
 ifneq (0, $(shell command -v $(CLANG) > /dev/null 2>&1 ; echo $$?))
 CLANG:=
 endif
+CMAKE?=cmake
+ifneq (0, $(shell command -v $(CMAKE) > /dev/null 2>&1 ; echo $$?))
+CMAKE:=
+endif
 
 GXX?=g++
 ifneq (0, $(shell command -v $(GXX) > /dev/null 2>&1 ; echo $$?))
@@ -89,9 +93,11 @@ UT_UT:=.ut
 UT_CACHE:=$(UT_UT)/cache
 
 UT_3P:=$(UT_UT)/.3p
+ifdef CMAKE
 UT_GT:=$(UT_3P)/googletest
 GTI:=$(UT_GT)/googletest/include
 GTL:=$(UT_GT)/build/lib
+endif
 
 -include $(UT_UT)/ut.mk
 
@@ -122,6 +128,7 @@ DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(UT_C_TESTS))
 DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(UT_CPP_TESTS))
 endif
 
+ifdef UT_GT
 GT_IHDR:='^\#include.*gtest/gtest.h'
 ifneq ($(MAKECMDGOALS),mrproper)
 GT_CC_TESTS:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.cc \) -exec grep -l $(GT_IHDR) '{}' \;)
@@ -129,6 +136,7 @@ ifneq (x$(GT_CC_TESTS),x)
 GT_CC_TESTS:=$(shell realpath --relative-to=. $(GT_CC_TESTS))
 endif
 DEPS+=$(patsubst %,$(UT_CACHE)/%.gt.d,$(GT_CC_TESTS))
+endif
 endif
 
 EXES:=
