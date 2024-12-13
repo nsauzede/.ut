@@ -7,7 +7,7 @@
 #include "inww_watch.c"
 
 /******************************************************************************/
-#include "ut.h"
+#include "ut/ut.h"
 
 TESTMETHOD(test_watch_fails_on_nonexisting) {
     int ret = watch("NONEXISTING");

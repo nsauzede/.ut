@@ -38,7 +38,7 @@ fi
 UT=ut
 UTBINPATH=$(realpath `readlink ${UTBIN} || echo ${UTBIN}`)
 UTROOT=`dirname ${UTBINPATH}`
-UT_VERSION=`grep "define UT_VERSION" ${UTROOT}/include/ut.h|cut -d'"' -f2`
+UT_VERSION=`grep "define UT_VERSION" ${UTROOT}/include/ut/ut.h|cut -d'"' -f2`
 
 
 UTMAKEFILE=${UTROOT}/tools/Makefile

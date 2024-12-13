@@ -102,19 +102,19 @@ SILENCEMAKE_:=-s
 SILENCEMAKE_1:=
 SILENCEMAKE:=$(SILENCEMAKE_$(V))
 
-UT_IHDR:='^\#include "ut.h"'
+UT_IHDR:='^\#include.*"ut/ut.h"'
 DEPS:=
 ifneq ($(MAKECMDGOALS),mrproper)
-C_TESTS:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.c \) -exec grep -l $(UT_IHDR) '{}' \;)
-ifneq (x$(C_TESTS),x)
-C_TESTS:=$(shell realpath --relative-to=. $(C_TESTS))
+UT_C_TESTS:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.c \) -exec grep -l $(UT_IHDR) '{}' \;)
+ifneq (x$(UT_C_TESTS),x)
+UT_C_TESTS:=$(shell realpath --relative-to=. $(UT_C_TESTS))
 endif
-CPP_TESTS:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.cpp \) -exec grep -l $(UT_IHDR) '{}' \;)
-ifneq (x$(CPP_TESTS),x)
-CPP_TESTS:=$(shell realpath --relative-to=. $(CPP_TESTS))
+UT_CPP_TESTS:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.cpp \) -exec grep -l $(UT_IHDR) '{}' \;)
+ifneq (x$(UT_CPP_TESTS),x)
+UT_CPP_TESTS:=$(shell realpath --relative-to=. $(UT_CPP_TESTS))
 endif
-DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(C_TESTS))
-DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(CPP_TESTS))
+DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(UT_C_TESTS))
+DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(UT_CPP_TESTS))
 endif
 
 EXES:=
@@ -122,21 +122,21 @@ PASSED_FAST:=
 PASSED_SLOW:=
 
 ifdef CC_FAST
-EXES+=$(patsubst %,$(UT_CACHE)/%.fast.exe,$(C_TESTS))
-PASSED_FAST+=$(patsubst %,$(UT_CACHE)/%.fast.passed,$(C_TESTS))
+EXES+=$(patsubst %,$(UT_CACHE)/%.fast.exe,$(UT_C_TESTS))
+PASSED_FAST+=$(patsubst %,$(UT_CACHE)/%.fast.passed,$(UT_C_TESTS))
 endif
 ifdef CXX_FAST
-EXES+=$(patsubst %,$(UT_CACHE)/%.fast.exe,$(CPP_TESTS))
-PASSED_FAST+=$(patsubst %,$(UT_CACHE)/%.fast.passed,$(CPP_TESTS))
+EXES+=$(patsubst %,$(UT_CACHE)/%.fast.exe,$(UT_CPP_TESTS))
+PASSED_FAST+=$(patsubst %,$(UT_CACHE)/%.fast.passed,$(UT_CPP_TESTS))
 endif
 
 ifdef CC_SLOW
-EXES+=$(patsubst %,$(UT_CACHE)/%.slow.exe,$(C_TESTS))
-PASSED_SLOW+=$(patsubst %,$(UT_CACHE)/%.slow.passed,$(C_TESTS))
+EXES+=$(patsubst %,$(UT_CACHE)/%.slow.exe,$(UT_C_TESTS))
+PASSED_SLOW+=$(patsubst %,$(UT_CACHE)/%.slow.passed,$(UT_C_TESTS))
 endif
 ifdef CXX_SLOW
-EXES+=$(patsubst %,$(UT_CACHE)/%.slow.exe,$(CPP_TESTS))
-PASSED_SLOW+=$(patsubst %,$(UT_CACHE)/%.slow.passed,$(CPP_TESTS))
+EXES+=$(patsubst %,$(UT_CACHE)/%.slow.exe,$(UT_CPP_TESTS))
+PASSED_SLOW+=$(patsubst %,$(UT_CACHE)/%.slow.passed,$(UT_CPP_TESTS))
 endif
 
 ifdef VALGRIND

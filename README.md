@@ -14,12 +14,12 @@ using a set a convenience tools to automate the building and running of the test
 Some tools also offer some kind of Python support (using pytest under the hood).
 
 # How to use
-Include (quoted) `ut.h` single header inside any C or C++ file and add testcases like this:
+Include (quoted) `ut/ut.h` single header inside any C or C++ file and add testcases like this:
 ```C
 // Some "a.c" (or "a.cpp") source file
 int foo { return 42; }
 ...
-#include "ut.h"
+#include "ut/ut.h"
 TESTCASE(Test_foo_behaviour)
     TESTMETHOD(test_foo_returns_the_answer) {
         ASSERT_EQ(42, foo());
@@ -32,7 +32,7 @@ In that case, all that is needed, is to include the source file at the top of th
 // Some "test_a.c" (or eg: "a_test.cpp") test file
 #include "path/to/a.c"          // or #include "path/to/a.cpp"
 
-#include "ut.h"
+#include "ut/ut.h"
 TESTCASE(Test_foo_behaviour)
     TESTMETHOD(test_foo_returns_the_answer) {
         ASSERT_EQ(42, foo());
@@ -52,7 +52,7 @@ This can be useful eg: for quickly prototyping an idea with the following minima
 // Some "a.c" (or "a.cpp") source source/test file
 int foo { return 42; }
 ...
-#include "ut.h"
+#include "ut/ut.h"
 TESTMETHOD(test_foo_returns_the_answer) {
     ASSERT_EQ(42, foo());
 }

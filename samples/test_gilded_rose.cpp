@@ -71,7 +71,7 @@ struct GildedRose {
     }
 };
 /******************************************************************************/
-#include "ut.h"
+#include "ut/ut.h"
 #include <iostream>
 struct CaseOfTest {
     int days; int quality; int exp_quality; int exp_days;
