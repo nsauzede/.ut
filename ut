@@ -278,7 +278,7 @@ fi
 if [ "x${UT_DIR}" != "x" ]; then
 UT_DIR=`realpath --relative-to="${UT_PROJ}" "${UT_DIR}"`
 else
-UT_DIR="${UT_PROJ}"
+UT_DIR=.
 fi
 
 if [ -n "${UT_OPTCLEAN}" -o -n "${DO_CLEAN}" ]; then

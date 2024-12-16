@@ -90,7 +90,7 @@ endif
 CCFILTER:=$(UTSCRIPTS)/ccolor.sh
 
 UT_UT:=.ut
-UT_CACHE:=$(UT_UT)/cache
+UT_CACHE:=$(UT_UT)/.cache
 
 UT_3P:=$(UT_UT)/.3p
 ifdef CMAKE
@@ -116,11 +116,11 @@ SILENCEMAKE:=$(SILENCEMAKE_$(V))
 UT_IHDR:='^\#include.*ut/ut.h'
 DEPS:=
 ifneq ($(MAKECMDGOALS),mrproper)
-UT_C_TESTS:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.c \) -exec grep -l $(UT_IHDR) '{}' \;)
+UT_C_TESTS:=$(shell find $(UT_DIR) -path './.*' -prune -o \( -type f -name \*.c \) -exec grep -l $(UT_IHDR) '{}' \;)
 ifneq (x$(UT_C_TESTS),x)
 UT_C_TESTS:=$(shell realpath --relative-to=. $(UT_C_TESTS))
 endif
-UT_CPP_TESTS:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.cpp \) -exec grep -l $(UT_IHDR) '{}' \;)
+UT_CPP_TESTS:=$(shell find $(UT_DIR) -path './.*' -prune -o \( -type f -name \*.cpp \) -exec grep -l $(UT_IHDR) '{}' \;)
 ifneq (x$(UT_CPP_TESTS),x)
 UT_CPP_TESTS:=$(shell realpath --relative-to=. $(UT_CPP_TESTS))
 endif
@@ -131,7 +131,7 @@ endif
 ifdef UT_GT
 GT_IHDR:='^\#include.*gtest/gtest.h'
 ifneq ($(MAKECMDGOALS),mrproper)
-GT_CC_TESTS:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.cc \) -exec grep -l $(GT_IHDR) '{}' \;)
+GT_CC_TESTS:=$(shell find $(UT_DIR) -path './.*' -prune -o \( -type f -name \*.cc \) -exec grep -l $(GT_IHDR) '{}' \;)
 ifneq (x$(GT_CC_TESTS),x)
 GT_CC_TESTS:=$(shell realpath --relative-to=. $(GT_CC_TESTS))
 endif
@@ -184,7 +184,7 @@ GTO:=--gtest_brief=1
 endif
 
 ifdef PYTEST
-PYTESTS_:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -name "test_*.py" -o -name "*_test.py" \) -print)
+PYTESTS_:=$(shell find $(UT_DIR) -path './.*' -prune -o \( -name "test_*.py" -o -name "*_test.py" \) -print)
 PYTESTS:=$(addprefix PYT/, $(PYTESTS_))
 ifneq ($(MAKECMDGOALS),mrproper)
 DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(PYTESTS_))
@@ -270,19 +270,19 @@ else
 .INTERMEDIATE: $(EXES)
 endif
 
-BUILD_C_EXE=$(AT)($(CC) $*.c -o $@ $(CFLAGS) $(LDFLAGS) > $@.build 2>&1 || (cat $@.build | $(CCFILTER) ; $(RM) $@.build ; false) && $(RM) $@.build)
+BUILD_C_EXE=$(AT)($(CC) $(CFLAGS) $*.c $(LDFLAGS) -o $@ $(LDLIBS) > $@.build 2>&1 || (cat $@.build | $(CCFILTER) ; $(RM) $@.build ; false) && $(RM) $@.build)
 $(UT_CACHE)/%.c.fast.exe: %.c ; $(BUILD_C_EXE)
 $(UT_CACHE)/%.c.slow.exe: %.c ; $(BUILD_C_EXE)
 
-BUILD_CPP_EXE=$(AT)$(CXX) $*.cpp -o $@ $(CXXFLAGS) $(LDFLAGS)
+BUILD_CPP_EXE=$(AT)$(CXX) $(CXXFLAGS) $*.cpp $(LDFLAGS) -o $@ $(LDLIBS)
 $(UT_CACHE)/%.cpp.fast.exe: %.cpp ; $(BUILD_CPP_EXE)
 $(UT_CACHE)/%.cpp.slow.exe: %.cpp ; $(BUILD_CPP_EXE)
 
-BUILD_CC_EXE=$(AT)$(CXX) $*.cc -o $@ $(CXXFLAGS) $(LDFLAGS)
+BUILD_CC_EXE=$(AT)$(CXX) $(CXXFLAGS) $*.cc $(LDFLAGS) -o $@ $(LDLIBS)
 $(UT_CACHE)/%.cc.fast.exe: %.cc ; $(BUILD_CC_EXE)
 $(UT_CACHE)/%.cc.slow.exe: %.cc ; $(BUILD_CC_EXE)
 
-TEST_FAST_PASSED=$(AT)./$< $(UTO) && touch $@
+TEST_FAST_PASSED=$(AT)LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) ./$< $(UTO) && touch $@
 $(UT_CACHE)/%.c.fast.passed: CC=$(CC_FAST)
 $(UT_CACHE)/%.c.fast.passed: CFLAGS+=-O0
 $(UT_CACHE)/%.c.fast.passed: $(UT_CACHE)/%.c.fast.exe ; $(TEST_FAST_PASSED)
