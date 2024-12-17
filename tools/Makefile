@@ -9,14 +9,18 @@ UTPATH:=$(shell dirname `dirname $(CURRENT_MAKEFILE)`)
 UTSCRIPTS:=$(UTPATH)/tools
 UT_DIR?=.
 
+-include ut*.mk
+
 MKDIR:=mkdir
 VALGRIND?=valgrind
 ifneq (0, $(shell command -v $(VALGRIND) > /dev/null 2>&1 ; echo $$?))
 VALGRIND:=
 endif
+ifneq (x$(UT_NOPY),x1)
 PYTEST?=pytest
 ifneq (0, $(shell command -v $(PYTEST) > /dev/null 2>&1 ; echo $$?))
 PYTEST:=
+endif
 endif
 TCC?=tcc
 ifneq (0, $(shell command -v $(TCC) > /dev/null 2>&1 ; echo $$?))
@@ -100,15 +104,17 @@ UT_CACHE:=$(UT_UT)/.cache
 UT_3P:=$(UT_UT)/.3p
 ifdef CMAKE
 ifdef GIT
+ifneq (x$(UT_NOGT),x1)
 UT_GT:=$(UT_3P)/googletest
 GTI:=$(UT_GT)/googletest/include
 GTL:=$(UT_GT)/build/lib
 endif
 endif
+endif
 
-CFLAGS:=-Wall -Werror -pipe -I$(UTPATH)/include -DUT_CACHE=\"$(UT_CACHE)\"
+CFLAGS+=-Wall -Werror -pipe -I$(UTPATH)/include -DUT_CACHE=\"$(UT_CACHE)\"
 CFLAGS+=$(UT_INCLUDES)
-CXXFLAGS:=-Wall -Werror -pipe -I$(UTPATH)/include -DUT_CACHE=\"$(UT_CACHE)\"
+CXXFLAGS+=-Wall -Werror -pipe -I$(UTPATH)/include -DUT_CACHE=\"$(UT_CACHE)\"
 CXXFLAGS+=$(UT_INCLUDES)
 
 AT_:=@
@@ -167,10 +173,13 @@ endif
 ifdef CXX_SLOW
 EXES+=$(patsubst %,$(UT_CACHE)/%.slow.exe,$(UT_CPP_TESTS))
 PASSED_SLOW+=$(patsubst %,$(UT_CACHE)/%.slow.passed,$(UT_CPP_TESTS))
+
+EXES+=$(patsubst %,$(UT_CACHE)/%.slow.exe,$(GT_CC_TESTS))
+PASSED_SLOW+=$(patsubst %,$(UT_CACHE)/%.slow.gt.passed,$(GT_CC_TESTS))
 endif
 
 ifdef VALGRIND
-VGO:=-q --leak-check=full --show-leak-kinds=all --errors-for-leak-kinds=all --exit-on-first-error=yes --error-exitcode=128
+VGO+=-q --leak-check=full --show-leak-kinds=all --errors-for-leak-kinds=all --exit-on-first-error=yes --error-exitcode=128
 VG:=$(VALGRIND)
 endif
 
@@ -209,15 +218,14 @@ endif
 
 PASSED:=
 PASSED+=$(PASSED_PY)
+ifneq ("x$(UT_SLOW)","x1")
 PASSED+=$(PASSED_FAST)
+endif
 ifneq ("x$(UT_FAST)","x1")
 PASSED+=$(PASSED_SLOW)
 endif
 
 all: $(PASSED)
-
--include $(UT_UT)/ut.mk
--include ut.mk
 
 dry-run: $(PASSED)
 
@@ -228,7 +236,7 @@ endif
 
 UT_PROJ:=$(PWD)
 watch:
-	$(AT)UT_DIR="$(UT_DIR)" UT_PROJ="$(UT_PROJ)" UT_VERBOSE="$(UT_VERBOSE)" UT_FAST="$(UT_FAST)" $(UTSCRIPTS)/watch.sh $(UTARGS)
+	$(AT)UT_DIR="$(UT_DIR)" UT_PROJ="$(UT_PROJ)" UT_VERBOSE="$(UT_VERBOSE)" UT_FAST="$(UT_FAST)" UT_SLOW="$(UT_SLOW)" $(UTSCRIPTS)/watch.sh $(UTARGS)
 
 $(UT_UT):
 	$(AT)echo "error: could not find \`$(UT_UT)/\` in \`$(UT_PROJ)\`. Try to init a new ut project there, eg: \`ut init\`"
@@ -247,10 +255,12 @@ $(UT_CACHE)/.gitignore: $(UT_UT)
 	echo "" >> $(UT_CACHE)/README.md && \
 	echo "See [the docs](https://github.com/nsauzede/ut_/blob/main/README.md) for more information." >> $(UT_CACHE)/README.md
 
+ifdef UT_GT
 $(UT_GT):
 	$(AT)$(MKDIR) -p $(@D) && \
 	(cd $(@D) && $(GIT) clone https://github.com/google/googletest.git && \
 	    cd googletest && mkdir build && cd build && cmake .. && make)
+endif
 
 $(UT_CACHE)/%.c.d: $(UT_CACHE)/.gitignore %.c
 	$(AT)$(MKDIR) -p $(@D) && \
@@ -266,14 +276,20 @@ $(UT_CACHE)/%.cpp.d: $(UT_CACHE)/.gitignore %.cpp
 	    && (cat $@.orig | $(UTSCRIPTS)/mkdep.py $(PWD) > $@ ; \
 	        $(RM) $@.orig))
 
+ifdef UT_GT
 $(UT_CACHE)/%.cc.gt.d: $(UT_CACHE)/.gitignore $(UT_GT) %.cc
 	$(AT)$(MKDIR) -p $(@D) && \
 	(g++ -MM $(CXXFLAGS) $*.cc > $@.orig 2>&1 \
 	    || (cat $@.orig | $(CCFILTER) ; $(RM) $@.orig ; false) \
 	    && (cat $@.orig | $(UTSCRIPTS)/mkdep.py $(PWD) > $@ ; \
 	        $(RM) $@.orig))
+endif
 
 ifeq (x$(V),x1)
+UT_KEEP:=1
+endif
+
+ifeq (x$(UT_KEEP),x1)
 .PRECIOUS: $(EXES)
 else
 .INTERMEDIATE: $(EXES)
@@ -312,8 +328,14 @@ $(UT_CACHE)/%.cc.fast.gt.passed: UTO=$(GTO)
 $(UT_CACHE)/%.cc.fast.gt.passed: $(UT_CACHE)/%.cc.fast.exe ; $(TEST_FAST_PASSED)
 
 $(UT_CACHE)/%.cpp.slow.passed: CXX=$(CXX_SLOW)
-$(UT_CACHE)/%.cpp.slow.passed: CXXFLAGS+=-g
+$(UT_CACHE)/%.cpp.slow.passed: CXXFLAGS+=-O0 -g
 $(UT_CACHE)/%.cpp.slow.passed: $(UT_CACHE)/%.cpp.slow.exe ; $(TEST_SLOW_PASSED)
+
+$(UT_CACHE)/%.cc.slow.gt.passed: CXX=$(CXX_SLOW)
+$(UT_CACHE)/%.cc.slow.gt.passed: CXXFLAGS+=-O0 -g -I$(GTI)
+$(UT_CACHE)/%.cc.slow.gt.passed: LDFLAGS+=-L$(GTL) -lgtest -lgtest_main
+$(UT_CACHE)/%.cc.slow.gt.passed: UTO=$(GTO)
+$(UT_CACHE)/%.cc.slow.gt.passed: $(UT_CACHE)/%.cc.slow.exe ; $(TEST_SLOW_PASSED)
 
 tools/inww.exe: CFLAGS:=-Wall -Werror -O3
 tools/inww.exe: tools/inww.c
