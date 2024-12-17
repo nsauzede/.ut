@@ -4,7 +4,7 @@
 * SPDX-License-Identifier: GPL-3.0-or-later
 */
 
-#include "ut.h"
+#include "ut/ut.h"
 
 #ifndef _WIN32
 TESTMETHOD(test_intentional_memleak) {

@@ -7,7 +7,7 @@
 #include "basicmath.c"
 
 /******************************************************************************/
-#include "ut.h"
+#include "ut/ut.h"
 
 typedef struct spy_add_s {
     int (*orig_add)(basicmath_t *self, int a, int b);

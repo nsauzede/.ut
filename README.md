@@ -14,25 +14,25 @@ using a set a convenience tools to automate the building and running of the test
 Some tools also offer some kind of Python support (using pytest under the hood).
 
 # How to use
-Include (quoted) `ut.h` single header inside any C or C++ file and add testcases like this:
+Include `ut/ut.h` single header inside any C or C++ file (must be named '*test.{c|cpp}') and add testcases like this:
 ```C
-// Some "a.c" (or "a.cpp") source file
+// Some "foo_test.c" (or "foo_test.cpp") source/test file
 int foo { return 42; }
 ...
-#include "ut.h"
+#include <ut/ut.h>
 TESTCASE(Test_foo_behaviour)
     TESTMETHOD(test_foo_returns_the_answer) {
         ASSERT_EQ(42, foo());
     }
 ...
 ```
-Note that, usually, the tests are preferably put in separate files (usually named `test_*.{c,cpp}` or `*_test.{c,cpp}`, although the `ut` framework actually detects any source including the proper header as above).
-In that case, all that is needed, is to include the source file at the top of the test file (remember: this is a unit-test framework), like so:
+Note that the tests can be put in separate files than the implementation.
+In that case, all that is needed, is to include the source file at the top of the test file, like so:
 ```C
-// Some "test_a.c" (or eg: "a_test.cpp") test file
-#include "path/to/a.c"          // or #include "path/to/a.cpp"
+// Some "foo_test.c" (or eg: "foo_test.cpp") test file
+#include "path/to/foo.c"          // or #include "path/to/foo.cpp"
 
-#include "ut.h"
+#include <ut/ut.h>
 TESTCASE(Test_foo_behaviour)
     TESTMETHOD(test_foo_returns_the_answer) {
         ASSERT_EQ(42, foo());
@@ -49,10 +49,10 @@ to perform test assertions.
 Note that, for simple tests cases, the `TESTCASE` construct can be ommitted, thus only `TESTMETHOD` have to be used, for less boilerplate code.
 This can be useful eg: for quickly prototyping an idea with the following minimalistic source/test file:
 ```C
-// Some "a.c" (or "a.cpp") source source/test file
+// Some "foo_test.c" (or "foo_test.cpp") source source/test file
 int foo { return 42; }
 ...
-#include "ut.h"
+#include <ut/ut.h>
 TESTMETHOD(test_foo_returns_the_answer) {
     ASSERT_EQ(42, foo());
 }
@@ -63,7 +63,7 @@ The only caveat, in that case, is that all such defined `TESTMETHOD` symbols (`t
 
 Then the resulting C/C++ test file can be simply built/run as an unit-test executable:
 ```
-$ gcc a.c && ./a.out
+$ gcc foo_test.c && ./a.out
 ```
 The executable returns 0 if all test cases/methods pass.
 
@@ -134,7 +134,7 @@ It is required to install the following dependencies:
 - `inotify-tools`
 
 It is also recommended to install those too:
-- `pytest`
+- `cmake`, `git`, `pytest`
 - `tcc`, `clang`
 - `valgrind`
 

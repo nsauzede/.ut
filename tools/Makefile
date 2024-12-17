@@ -31,6 +31,15 @@ ifneq (0, $(shell command -v $(CLANG) > /dev/null 2>&1 ; echo $$?))
 CLANG:=
 endif
 
+CMAKE?=cmake
+ifneq (0, $(shell command -v $(CMAKE) > /dev/null 2>&1 ; echo $$?))
+CMAKE:=
+endif
+GIT?=git
+ifneq (0, $(shell command -v $(GIT) > /dev/null 2>&1 ; echo $$?))
+GIT:=
+endif
+
 GXX?=g++
 ifneq (0, $(shell command -v $(GXX) > /dev/null 2>&1 ; echo $$?))
 GXX:=
@@ -86,9 +95,16 @@ endif
 CCFILTER:=$(UTSCRIPTS)/ccolor.sh
 
 UT_UT:=.ut
-UT_CACHE:=$(UT_UT)/cache
+UT_CACHE:=$(UT_UT)/.cache
 
--include $(UT_UT)/ut.mk
+UT_3P:=$(UT_UT)/.3p
+ifdef CMAKE
+ifdef GIT
+UT_GT:=$(UT_3P)/googletest
+GTI:=$(UT_GT)/googletest/include
+GTL:=$(UT_GT)/build/lib
+endif
+endif
 
 CFLAGS:=-Wall -Werror -pipe -I$(UTPATH)/include -DUT_CACHE=\"$(UT_CACHE)\"
 CFLAGS+=$(UT_INCLUDES)
@@ -102,19 +118,30 @@ SILENCEMAKE_:=-s
 SILENCEMAKE_1:=
 SILENCEMAKE:=$(SILENCEMAKE_$(V))
 
-UT_IHDR:='^\#include "ut.h"'
+UT_IHDR:='^\#include.*ut/ut.h'
 DEPS:=
 ifneq ($(MAKECMDGOALS),mrproper)
-C_TESTS:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.c \) -exec grep -l $(UT_IHDR) '{}' \;)
-ifneq (x$(C_TESTS),x)
-C_TESTS:=$(shell realpath --relative-to=. $(C_TESTS))
+UT_C_TESTS:=$(shell find $(UT_DIR) -path './.*' -prune -o \( -type f -name '*test.c' \) -exec grep -l $(UT_IHDR) '{}' \;)
+ifneq (x$(UT_C_TESTS),x)
+UT_C_TESTS:=$(shell realpath --relative-to=. $(UT_C_TESTS))
 endif
-CPP_TESTS:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -type f -name \*.cpp \) -exec grep -l $(UT_IHDR) '{}' \;)
-ifneq (x$(CPP_TESTS),x)
-CPP_TESTS:=$(shell realpath --relative-to=. $(CPP_TESTS))
+UT_CPP_TESTS:=$(shell find $(UT_DIR) -path './.*' -prune -o \( -type f -name '*test.cpp' \) -exec grep -l $(UT_IHDR) '{}' \;)
+ifneq (x$(UT_CPP_TESTS),x)
+UT_CPP_TESTS:=$(shell realpath --relative-to=. $(UT_CPP_TESTS))
 endif
-DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(C_TESTS))
-DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(CPP_TESTS))
+DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(UT_C_TESTS))
+DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(UT_CPP_TESTS))
+endif
+
+ifdef UT_GT
+GT_IHDR:='^\#include.*gtest/gtest.h'
+ifneq ($(MAKECMDGOALS),mrproper)
+GT_CC_TESTS:=$(shell find $(UT_DIR) -path './.*' -prune -o \( -type f -name '*test.cc' \) -exec grep -l $(GT_IHDR) '{}' \;)
+ifneq (x$(GT_CC_TESTS),x)
+GT_CC_TESTS:=$(shell realpath --relative-to=. $(GT_CC_TESTS))
+endif
+DEPS+=$(patsubst %,$(UT_CACHE)/%.gt.d,$(GT_CC_TESTS))
+endif
 endif
 
 EXES:=
@@ -122,26 +149,29 @@ PASSED_FAST:=
 PASSED_SLOW:=
 
 ifdef CC_FAST
-EXES+=$(patsubst %,$(UT_CACHE)/%.fast.exe,$(C_TESTS))
-PASSED_FAST+=$(patsubst %,$(UT_CACHE)/%.fast.passed,$(C_TESTS))
+EXES+=$(patsubst %,$(UT_CACHE)/%.fast.exe,$(UT_C_TESTS))
+PASSED_FAST+=$(patsubst %,$(UT_CACHE)/%.fast.passed,$(UT_C_TESTS))
 endif
 ifdef CXX_FAST
-EXES+=$(patsubst %,$(UT_CACHE)/%.fast.exe,$(CPP_TESTS))
-PASSED_FAST+=$(patsubst %,$(UT_CACHE)/%.fast.passed,$(CPP_TESTS))
+EXES+=$(patsubst %,$(UT_CACHE)/%.fast.exe,$(UT_CPP_TESTS))
+PASSED_FAST+=$(patsubst %,$(UT_CACHE)/%.fast.passed,$(UT_CPP_TESTS))
+
+EXES+=$(patsubst %,$(UT_CACHE)/%.fast.exe,$(GT_CC_TESTS))
+PASSED_FAST+=$(patsubst %,$(UT_CACHE)/%.fast.gt.passed,$(GT_CC_TESTS))
 endif
 
 ifdef CC_SLOW
-EXES+=$(patsubst %,$(UT_CACHE)/%.slow.exe,$(C_TESTS))
-PASSED_SLOW+=$(patsubst %,$(UT_CACHE)/%.slow.passed,$(C_TESTS))
+EXES+=$(patsubst %,$(UT_CACHE)/%.slow.exe,$(UT_C_TESTS))
+PASSED_SLOW+=$(patsubst %,$(UT_CACHE)/%.slow.passed,$(UT_C_TESTS))
 endif
 ifdef CXX_SLOW
-EXES+=$(patsubst %,$(UT_CACHE)/%.slow.exe,$(CPP_TESTS))
-PASSED_SLOW+=$(patsubst %,$(UT_CACHE)/%.slow.passed,$(CPP_TESTS))
+EXES+=$(patsubst %,$(UT_CACHE)/%.slow.exe,$(UT_CPP_TESTS))
+PASSED_SLOW+=$(patsubst %,$(UT_CACHE)/%.slow.passed,$(UT_CPP_TESTS))
 endif
 
 ifdef VALGRIND
 VGO:=-q --leak-check=full --show-leak-kinds=all --errors-for-leak-kinds=all --exit-on-first-error=yes --error-exitcode=128
-VG:=$(VALGRIND) $(VGO)
+VG:=$(VALGRIND)
 endif
 
 ifdef PYTEST
@@ -153,10 +183,13 @@ endif
 
 ifeq ("x$(UT_VERBOSE)", "x1")
 UTO:=-v
+GTO:=
+else
+GTO:=--gtest_brief=1
 endif
 
 ifdef PYTEST
-PYTESTS_:=$(shell find $(UT_DIR) -path '*/.ut' -prune -o \( -name "test_*.py" -o -name "*_test.py" \) -print)
+PYTESTS_:=$(shell find $(UT_DIR) -path './.*' -prune -o \( -name "test_*.py" -o -name "*_test.py" \) -print)
 PYTESTS:=$(addprefix PYT/, $(PYTESTS_))
 ifneq ($(MAKECMDGOALS),mrproper)
 DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(PYTESTS_))
@@ -182,6 +215,10 @@ PASSED+=$(PASSED_SLOW)
 endif
 
 all: $(PASSED)
+
+-include $(UT_UT)/ut.mk
+-include ut.mk
+
 dry-run: $(PASSED)
 
 ifdef PYTEST
@@ -210,6 +247,11 @@ $(UT_CACHE)/.gitignore: $(UT_UT)
 	echo "" >> $(UT_CACHE)/README.md && \
 	echo "See [the docs](https://github.com/nsauzede/ut_/blob/main/README.md) for more information." >> $(UT_CACHE)/README.md
 
+$(UT_GT):
+	$(AT)$(MKDIR) -p $(@D) && \
+	(cd $(@D) && $(GIT) clone https://github.com/google/googletest.git && \
+	    cd googletest && mkdir build && cd build && cmake .. && make)
+
 $(UT_CACHE)/%.c.d: $(UT_CACHE)/.gitignore %.c
 	$(AT)$(MKDIR) -p $(@D) && \
 	(gcc -MM $(CFLAGS) $*.c > $@.orig 2>&1 \
@@ -224,26 +266,37 @@ $(UT_CACHE)/%.cpp.d: $(UT_CACHE)/.gitignore %.cpp
 	    && (cat $@.orig | $(UTSCRIPTS)/mkdep.py $(PWD) > $@ ; \
 	        $(RM) $@.orig))
 
+$(UT_CACHE)/%.cc.gt.d: $(UT_CACHE)/.gitignore $(UT_GT) %.cc
+	$(AT)$(MKDIR) -p $(@D) && \
+	(g++ -MM $(CXXFLAGS) $*.cc > $@.orig 2>&1 \
+	    || (cat $@.orig | $(CCFILTER) ; $(RM) $@.orig ; false) \
+	    && (cat $@.orig | $(UTSCRIPTS)/mkdep.py $(PWD) > $@ ; \
+	        $(RM) $@.orig))
+
 ifeq (x$(V),x1)
 .PRECIOUS: $(EXES)
 else
 .INTERMEDIATE: $(EXES)
 endif
 
-BUILD_C_EXE=$(AT)($(CC) $*.c -o $@ $(CFLAGS) $(LDFLAGS) > $@.build 2>&1 || (cat $@.build | $(CCFILTER) ; $(RM) $@.build ; false) && $(RM) $@.build)
+BUILD_C_EXE=$(AT)($(CC) $(CFLAGS) $*.c $(LDFLAGS) -o $@ $(LDLIBS) > $@.build 2>&1 || (cat $@.build | $(CCFILTER) ; $(RM) $@.build ; false) && $(RM) $@.build)
 $(UT_CACHE)/%.c.fast.exe: %.c ; $(BUILD_C_EXE)
 $(UT_CACHE)/%.c.slow.exe: %.c ; $(BUILD_C_EXE)
 
-BUILD_CPP_EXE=$(AT)$(CXX) $*.cpp -o $@ $(CXXFLAGS) $(LDFLAGS)
+BUILD_CPP_EXE=$(AT)$(CXX) $(CXXFLAGS) $*.cpp $(LDFLAGS) -o $@ $(LDLIBS)
 $(UT_CACHE)/%.cpp.fast.exe: %.cpp ; $(BUILD_CPP_EXE)
 $(UT_CACHE)/%.cpp.slow.exe: %.cpp ; $(BUILD_CPP_EXE)
 
-TEST_FAST_PASSED=$(AT)./$< $(UTO) && touch $@
+BUILD_CC_EXE=$(AT)$(CXX) $(CXXFLAGS) $*.cc $(LDFLAGS) -o $@ $(LDLIBS)
+$(UT_CACHE)/%.cc.fast.exe: %.cc ; $(BUILD_CC_EXE)
+$(UT_CACHE)/%.cc.slow.exe: %.cc ; $(BUILD_CC_EXE)
+
+TEST_FAST_PASSED=$(AT)LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) ./$< $(UTO) && touch $@
 $(UT_CACHE)/%.c.fast.passed: CC=$(CC_FAST)
 $(UT_CACHE)/%.c.fast.passed: CFLAGS+=-O0
 $(UT_CACHE)/%.c.fast.passed: $(UT_CACHE)/%.c.fast.exe ; $(TEST_FAST_PASSED)
 
-TEST_SLOW_PASSED=$(AT)$(VG) ./$< $(UTO) && touch $@
+TEST_SLOW_PASSED=$(AT)LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) $(VG) $(VGO) ./$< $(UTO) && touch $@
 $(UT_CACHE)/%.c.slow.passed: CC=$(CC_SLOW)
 $(UT_CACHE)/%.c.slow.passed: CFLAGS+=-g
 $(UT_CACHE)/%.c.slow.passed: $(UT_CACHE)/%.c.slow.exe ; $(TEST_SLOW_PASSED)
@@ -251,6 +304,12 @@ $(UT_CACHE)/%.c.slow.passed: $(UT_CACHE)/%.c.slow.exe ; $(TEST_SLOW_PASSED)
 $(UT_CACHE)/%.cpp.fast.passed: CXX=$(CXX_FAST)
 $(UT_CACHE)/%.cpp.fast.passed: CXXFLAGS+=-O0
 $(UT_CACHE)/%.cpp.fast.passed: $(UT_CACHE)/%.cpp.fast.exe ; $(TEST_FAST_PASSED)
+
+$(UT_CACHE)/%.cc.fast.gt.passed: CXX=$(CXX_FAST)
+$(UT_CACHE)/%.cc.fast.gt.passed: CXXFLAGS+=-O0 -I$(GTI)
+$(UT_CACHE)/%.cc.fast.gt.passed: LDFLAGS+=-L$(GTL) -lgtest -lgtest_main
+$(UT_CACHE)/%.cc.fast.gt.passed: UTO=$(GTO)
+$(UT_CACHE)/%.cc.fast.gt.passed: $(UT_CACHE)/%.cc.fast.exe ; $(TEST_FAST_PASSED)
 
 $(UT_CACHE)/%.cpp.slow.passed: CXX=$(CXX_SLOW)
 $(UT_CACHE)/%.cpp.slow.passed: CXXFLAGS+=-g

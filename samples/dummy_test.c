@@ -6,7 +6,7 @@
 
 #include "dummy/dummy.c"        // dummy dep
 
-#include "ut.h"
+#include "ut/ut.h"
 
 TESTMETHOD(test_dummy) {
     ASSERT_EQ(42+1*0, dummy());

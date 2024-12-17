@@ -46,7 +46,7 @@ def mkdep(cachedir:str, inp:str)->str:
     return outp
 
 def main():
-    cachedir = ".ut/cache"
+    cachedir = ".ut/.cache"
     inp = sys.stdin.read()
     outp = mkdep(cachedir, inp)
     print(f"{outp}", end="")

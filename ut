@@ -38,7 +38,7 @@ fi
 UT=ut
 UTBINPATH=$(realpath `readlink ${UTBIN} || echo ${UTBIN}`)
 UTROOT=`dirname ${UTBINPATH}`
-UT_VERSION=`grep "define UT_VERSION" ${UTROOT}/include/ut.h|cut -d'"' -f2`
+UT_VERSION=`grep "define UT_VERSION" ${UTROOT}/include/ut/ut.h|cut -d'"' -f2`
 
 
 UTMAKEFILE=${UTROOT}/tools/Makefile
@@ -120,7 +120,7 @@ else
 SILENCEMAKE=-s
 fi
 
-UT_DIR=.
+UT_DIR=""
 UTCMD=${UTARG}
 case ${UTCMD} in
 ${UTINIT}) :
@@ -275,7 +275,11 @@ if [ ! -d "${UT_UT}" ]; then
     done
     UT_PROJ=${UT_PROJ0}
 fi
+if [ "x${UT_DIR}" != "x" ]; then
 UT_DIR=`realpath --relative-to="${UT_PROJ}" "${UT_DIR}"`
+else
+UT_DIR=.
+fi
 
 if [ -n "${UT_OPTCLEAN}" -o -n "${DO_CLEAN}" ]; then
     UT_ARGS="${UT_ARGS}" UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" mrproper

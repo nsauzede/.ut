@@ -16,7 +16,7 @@ void print_double(double value) {
     printf("double: %f\n", value);
 }
 /******************************************************************************/
-#include "ut.h"
+#include "ut/ut.h"
 TESTCASE(TestGeneric)
     TESTMETHOD(test_to_str) {
         TO_STR(42);
