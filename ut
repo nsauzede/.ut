@@ -256,6 +256,8 @@ if [ -n "${DO_INIT}" ]; then
     else
         echo "#UT_INCLUDES:=-I foo -I bar ..." >> ${UT_MK}
     fi
+    echo "" >> ${UT_MK}
+    echo "-include ut.mk" >> ${UT_MK}
     echo -e "\tCreated ut project"
     exit 0
 fi
