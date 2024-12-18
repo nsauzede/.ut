@@ -1,4 +1,4 @@
-# ut project: ".ut", from ut version 0.0.11
+# ut project: ".ut", from ut version 0.0.12
 # WARNING: do not put explicit Make targets in this file!
 
 #UT_FAST:=1

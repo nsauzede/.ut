@@ -312,7 +312,10 @@ $(UT_CACHE)/%.c.fast.passed: CC=$(CC_FAST)
 $(UT_CACHE)/%.c.fast.passed: CFLAGS+=-O0
 $(UT_CACHE)/%.c.fast.passed: $(UT_CACHE)/%.c.fast.exe ; $(TEST_FAST_PASSED)
 
-TEST_SLOW_PASSED=$(AT)LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) $(VG) $(VGO) ./$< $(UTO) && touch $@
+ifdef VG
+VG_:=$(VG) $(VGO)
+endif
+TEST_SLOW_PASSED=$(AT)LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) $(VG_) ./$< $(UTO) && touch $@
 $(UT_CACHE)/%.c.slow.passed: CC=$(CC_SLOW)
 $(UT_CACHE)/%.c.slow.passed: CFLAGS+=-g
 $(UT_CACHE)/%.c.slow.passed: $(UT_CACHE)/%.c.slow.exe ; $(TEST_SLOW_PASSED)
