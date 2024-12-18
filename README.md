@@ -3,29 +3,87 @@
 
 ![Cle d'UT](res/images/ut.png)
 
-Simple and fast Unit Test framework.
+## Simple And Fast Unit Test Framework.
 
 The goal is to accelerate the Test Driven Development methodology.
 
-It is primarily focused on C/C++, under the form of a single header file,
-and is meant to be completely independent to the existing build framework,
+It supports `Linux` and `Windows` (msys2), and is primarily focused on `C/C++`, under the form of a single header file,
+and is meant to be completely independent to the user's existing build system,
 using a set a convenience tools to automate the building and running of the tests.
+It also supports any `googletest` conformant source/test files.
 
-Some tools also offer some kind of Python support (using pytest under the hood).
+Some tools also offer some kind of `Python` support (using `pytest` under the hood).
 
-# How to use
-Include `ut/ut.h` single header inside any C or C++ file (must be named '*test.{c|cpp}') and add testcases like this:
+### Quick start for the impatient
+1. Clone UT at the root of your existing project:
+
+`$ git clone https://github.com/nsauzede/.ut`
+
+That's it! Everything is setup, tests can be written and run.
+
+2. Add tests:
+
+Include `ut/ut.h` inside any C or C++ source/test file (must be named '*test.{c,cpp}' for automatic detection by `ut` tool) and add testcases like this:
 ```C
-// Some "foo_test.c" (or "foo_test.cpp") source/test file
-int foo { return 42; }
-...
+// Some "foo_test.c" source/test file
+int foo() { return 42; }
 #include <ut/ut.h>
 TESTCASE(Test_foo_behaviour)
     TESTMETHOD(test_foo_returns_the_answer) {
         ASSERT_EQ(42, foo());
     }
-...
 ```
+```C++
+// Some "foo_test.cpp" source/test file
+class Foo { public: int foo() { return 42; } } foo;
+#include <ut/ut.h>
+TESTCASE(Test_foo_behaviour)
+    TESTMETHOD(test_foo_returns_the_answer) {
+        ASSERT_EQ(42, foo.foo());
+    }
+```
+3. Run tests:
+```
+$ .ut/ut --fast -v retest
+============================== test session starts ===============================
+platform win32 -- ut 0.0.10, language C, GCC 14.2.0 -- C:\msys64\tmp\.ut\.cache\test.c.fast.exe
+cachedir: .ut/.cache
+rootdir: C:\msys64\tmp
+collected 1 items
+
+test.c::test_foo_returns_the_answer PASSED                                 [100%]
+
+=============================== 1 passed in 0.00s ================================
+============================== test session starts ===============================
+platform win32 -- ut 0.0.10, language C++, GCC 14.2.0 -- C:\msys64\tmp\.ut\.cache\foo_test.cpp.fast.exe
+cachedir: .ut/.cache
+rootdir: C:\msys64\tmp
+collected 1 items
+
+foo_test.cpp::test_foo_returns_the_answer PASSED                           [100%]
+
+=============================== 1 passed in 0.00s ================================
+```
+4. ...
+5. Profit!
+
+If TCC, GCC, CLANG, VALGRIND (linux only), are available, they will all be used automatically:
+- fast tests try to use `tcc` (or `gcc`, or `clang`) and `g++` (or `clang++`)
+- slow tests try to use `clang` (or `gcc`, or `tcc`) and `clang++` (or `g++`) and `valgrind`
+
+The `test` command above automatically builds and tests all/only the last modified source/test files.
+The `--fast` and `-v` options are optional, and select only fast tests, with increased verbosity.
+Consult `.ut/ut --help` for more information.
+
+To systematically rebuild/retest everything unconditionally, use `retest`.
+
+To enter a typical TDD Red-Green-Refactor loop, use `watch`:
+```
+$ .ut/ut watch
+```
+=> From now on, each you modify a source/test file (eg: within VSCode), all related tests will get automatically rebuilt/retested.
+
+
 Note that the tests can be put in separate files than the implementation.
 In that case, all that is needed, is to include the source file at the top of the test file, like so:
 ```C
@@ -61,20 +119,25 @@ TESTMETHOD(test_foo_returns_the_answer) {
 The only caveat, in that case, is that all such defined `TESTMETHOD` symbols (`test_foo_returns_the_answer` in that case) must be unique, whereas they could be duplicates when registered in different `TESTCASE` like previously.
 
 
-Then the resulting C/C++ test file can be simply built/run as an unit-test executable:
+Note that in fact any C/C++ file (even not named `*test.{c,cpp}`) can also be manually built/run as an unit-test executable like so:
 ```
-$ gcc foo_test.c && ./a.out
+$ gcc a.c -o a -I.ut/include && ./a
+a.c .                                                            1 passed in 0.00s
 ```
 The executable returns 0 if all test cases/methods pass.
 
-# Convenience tools
-Some optional tools are provided, to accelerate the TDD-loop approach: red-green-refactor steps.
+### Detailed information (aka old documentation)
+Some optional tools/scripts are provided by UT, to accelerate the TDD-loop approach: red-green-refactor steps.
 
 1) a `Makefile` is provided to automatically clean/build/test all C/C++ adequate test files
 2) a `watch.sh` shell script constinuously monitors file-system changes and re-run modified tests
 3) an `ut` shell script abstracts these `clean`, `test`, `watch`, ... commands. See `ut --help`
 4) `ut` supports Bash auto-completion; register it in `.bashrc` like so: `[ -x ~/ut_/ut ] && . ~/ut_/ut`
 (just adapt to where you did install the `ut_` repo on your system)
+
+Once you cloned the `.ut` git directory somewhere, and added `ut` in your PATH, you don't even need to clone it again
+in all your projects, you just have to use the `ut init` command (akin to eg: `git init`) to initialize them.
+It will only create a mostly empty `.ut` directory at the root of your project, which will contain eg: test cache datas.
 
 How (easy it is) to use `ut` tool?
 First you have to initialize the ut project root directory (only once!).
@@ -131,12 +194,12 @@ $
 It is required to install the following dependencies:
 - `make4.3+`, `gcc13.2+`
 - `python3.9+`
-- `inotify-tools`
+- `inotify-tools` (linux only)
 
 It is also recommended to install those too:
-- `cmake`, `git`, `pytest`
+- `git`, `cmake`, `pytest`
 - `tcc`, `clang`
-- `valgrind`
+- `valgrind` (linux only)
 
 [WorkflowBadgeLinux]: https://github.com/nsauzede/ut_/workflows/Linux/badge.svg
 [WorkflowBadgeWindows]: https://github.com/nsauzede/ut_/workflows/Windows/badge.svg
