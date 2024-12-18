@@ -65,7 +65,7 @@ foo_test.cpp::test_foo_returns_the_answer PASSED                           [100%
 =============================== 1 passed in 0.00s ================================
 ```
 4. ...
-5. Profit!
+5. _Profit!_
 
 If TCC, GCC, CLANG, VALGRIND (linux only), are available, they will all be used automatically:
 - fast tests try to use `tcc` (or `gcc`, or `clang`) and `g++` (or `clang++`)
@@ -192,8 +192,8 @@ $
 
 # Dependencies
 It is required to install the following dependencies:
-- `make4.3+`, `gcc13.2+`
-- `python3.9+`
+- `make` (4.3+), `gcc` (13.2+)
+- `python` (3.9+)
 - `inotify-tools` (linux only)
 
 It is also recommended to install those too:
