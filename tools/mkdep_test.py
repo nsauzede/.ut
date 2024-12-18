@@ -7,7 +7,7 @@
 from mkdep import mkdep
 
 def test():
-    utdir = "/some/where/git/ut_"
+    utdir = "/some/where/.ut"
     tstdir = "ut_tests/tests"
     tst = "test_list.c"
     cache = f"{utdir}/.ut/.cache"

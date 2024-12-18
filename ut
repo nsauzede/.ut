@@ -335,7 +335,7 @@ if [ -d "${utbinpath}" ] && [[ ":$PATH:" != *":${utbinpath}:"* ]]; then
     PATH="${PATH:+"$PATH:"}${utbinpath}"
 fi
 
-_ut()
+ut_complete()
 {
     local cur opts
     COMPREPLY=()
@@ -344,7 +344,7 @@ _ut()
     COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
     return 0
 }
-complete -o nospace -F _ut ${ut}
+complete -o nospace -F ut_complete ${ut}
 
 unset utcalled utbin utfull utroot ut utbinpath
 

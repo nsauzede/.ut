@@ -253,7 +253,7 @@ $(UT_CACHE)/.gitignore: $(UT_UT)
 	echo "" >> $(UT_CACHE)/README.md && \
 	echo "**Do not** commit this to version control." >> $(UT_CACHE)/README.md && \
 	echo "" >> $(UT_CACHE)/README.md && \
-	echo "See [the docs](https://github.com/nsauzede/ut_/blob/main/README.md) for more information." >> $(UT_CACHE)/README.md
+	echo "See [the docs](https://github.com/nsauzede/.ut/blob/main/README.md) for more information." >> $(UT_CACHE)/README.md
 
 ifdef UT_GT
 $(UT_GT):

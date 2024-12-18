@@ -10,7 +10,7 @@ The goal is to accelerate the Test Driven Development methodology.
 It supports `Linux` and `Windows` (msys2), and is primarily focused on `C/C++`, under the form of a single header file,
 and is meant to be completely independent to the user's existing build system,
 using a set a convenience tools to automate the building and running of the tests.
-It also supports any `googletest` conformant source/test files.
+It also supports any `googletest` conformant source/test files (googletest will be automatically fetched/installed if cmake and git are available).
 
 Some tools also offer some kind of `Python` support (using `pytest` under the hood).
 
@@ -132,10 +132,10 @@ Some optional tools/scripts are provided by UT, to accelerate the TDD-loop appro
 1) a `Makefile` is provided to automatically clean/build/test all C/C++ adequate test files
 2) a `watch.sh` shell script constinuously monitors file-system changes and re-run modified tests
 3) an `ut` shell script abstracts these `clean`, `test`, `watch`, ... commands. See `ut --help`
-4) `ut` supports Bash auto-completion; register it in `.bashrc` like so: `[ -x ~/ut_/ut ] && . ~/ut_/ut`
-(just adapt to where you did install the `ut_` repo on your system)
+4) `ut` supports Bash auto-completion; register it in `.bashrc` like so: `[ -x ~/.ut/ut ] && . ~/.ut/ut`
+(just adapt to where you did install UT repo on your system)
 
-Once you cloned the `.ut` git directory somewhere, and added `ut` in your PATH, you don't even need to clone it again
+Once you cloned the UT git directory somewhere, and added its location in your PATH, you don't even need to clone it again
 in all your projects, you just have to use the `ut init` command (akin to eg: `git init`) to initialize them.
 It will only create a mostly empty `.ut` directory at the root of your project, which will contain eg: test cache datas.
 
@@ -201,6 +201,6 @@ It is also recommended to install those too:
 - `tcc`, `clang`
 - `valgrind` (linux only)
 
-[WorkflowBadgeLinux]: https://github.com/nsauzede/ut_/workflows/Linux/badge.svg
-[WorkflowBadgeWindows]: https://github.com/nsauzede/ut_/workflows/Windows/badge.svg
-[WorkflowUrl]: https://github.com/nsauzede/ut_/commits/main
+[WorkflowBadgeLinux]: https://github.com/nsauzede/.ut/workflows/Linux/badge.svg
+[WorkflowBadgeWindows]: https://github.com/nsauzede/.ut/workflows/Windows/badge.svg
+[WorkflowUrl]: https://github.com/nsauzede/.ut/commits/main

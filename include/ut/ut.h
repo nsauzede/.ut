@@ -25,7 +25,7 @@
 #include <sys/ioctl.h>  // ioctl
 #endif
 
-#define UT_VERSION "0.0.10"
+#define UT_VERSION "0.0.11"
 
 #define CTOR __attribute((constructor))
 #define TRY() (setjmp(UT.jmpbuf) == 0)
@@ -536,5 +536,6 @@ int ut_assert_neq_(const char *file, int line, const char *func, const char *va_
     void*: ut_assert_neq_ptr)(__FILE__,__LINE__,__func__,va_args,lhs, rhs)
 #endif
 #define ASSERT_EQ(...) ASSERT_EQ_(#__VA_ARGS__, __VA_ARGS__)
+#define EXPECT_EQ(...) ASSERT_EQ(__VA_ARGS__)
 #define ASSERT_NEQ(...) ASSERT_NEQ_(#__VA_ARGS__, __VA_ARGS__)
 #endif/*UT_H__*/
