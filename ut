@@ -208,7 +208,7 @@ if [ -n "${DO_HELP}" ]; then
     echo -e "      ${UTOPTPATH} <DIRECTORY>\tSet project PATH to DIRECTORY instead of default PWD"
     echo -e ""
     echo -e "Commands:"
-    echo -e "    ${UTINIT}\t\tInitialize ut project root"
+    echo -e "    ${UTINIT}\t\tInitialize UT project root"
     echo -e "    ${UTCLEAN}\t\tClean everything"
     echo -e "    ${UTTEST}\t\tRun refreshed tests"
     echo -e "    ${UTRETEST}\t\tRun all tests (as if they were refreshed)"
@@ -234,14 +234,17 @@ UT_MK="ut.mk"
 if [ -n "${DO_INIT}" ]; then
     if [ -d ${UT_UT} ]; then
         if [ "x${UT_FORCE}" != "x1" ]; then
-            echo "Error: '${UT} ${UTINIT}' cannot be run on existing ut project."
+            echo "Error: '${UT} ${UTINIT}' cannot be run on existing UT project."
             echo "Use '${UTOPTFORCE}' option to force."
             exit 1
         fi
     fi
     mkdir -p ${UT_UT}
-    (cd ${UT_UT}; touch .keep; rm -Rf .cache .3p; ln -sf ../.cache; ln -sf ../.3p)
-    echo "# ut project: \"${UT_PKG}\", from ut version ${UT_VERSION}" > ${UT_MK}
+    touch ${UT_UT}/.keep
+    rm -Rf ${UT_UT}/.cache ${UT_UT}.3p
+    [ -d .cache ] && (cd ${UT_UT}; ln -sf ../.cache)
+    [ -d .3p ] && (cd ${UT_UT}; ln -sf ../.3p)
+    echo "# UT project: \"${UT_PKG}\", from UT version ${UT_VERSION}" > ${UT_MK}
     echo "# WARNING: do not put any explicit Make targets in this file!" >> ${UT_MK}
     echo "" >> ${UT_MK}
     if [ -n "${UT_FAST}" ]; then
@@ -274,7 +277,7 @@ if [ -n "${DO_INIT}" ]; then
     echo "#CXXFLAGS:=-I this/path -D THAT_SYMBOL ..." >> ${UT_MK}
     echo "# Or even UT internal ones, like VGO (valgrind options), eg:" >> ${UT_MK}
     echo "#VGO:=--suppressions=my_vg.supp --gen-suppressions=all" >> ${UT_MK}
-    echo -e "\tCreated ut project"
+    echo -e "\tCreated UT project"
     exit 0
 fi
 
@@ -286,7 +289,7 @@ if [ ! -d "${UT_UT}" ]; then
         fi
         if [ "${UT_PROJ0}" = "/" ]; then
             echo "error: could not find '${DOTUT}' in '${UT_PROJ}' or any parent directory."
-            echo "Run '${UT} ${UTINIT}' to initialize the root of an ut project."
+            echo "Run '${UT} ${UTINIT}' to initialize the root of an UT project."
             exit 1
         fi
         UT_PROJ0=`dirname ${UT_PROJ0}`

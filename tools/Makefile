@@ -105,13 +105,23 @@ UT_UT:=.ut
 UT_CACHE:=$(UT_UT)/.cache
 
 UT_3P:=$(UT_UT)/.3p
-ifdef CMAKE
-ifdef GIT
+#ifdef CMAKE
+#ifdef GIT
+#ifneq (x$(UT_NOGT),x1)
+#UT_GT:=$(UT_3P)/googletest
+#GTI:=$(UT_GT)/googletest/include
+#GTL:=$(UT_GT)/build/lib
+#endif
+#endif
+#endif
+
 ifneq (x$(UT_NOGT),x1)
-UT_GT:=$(UT_3P)/googletest
-GTI:=$(UT_GT)/googletest/include
-GTL:=$(UT_GT)/build/lib
-endif
+_GT_INC:="gtest/gtest.h"
+_SYS_GT:=$(shell echo "#include<$(_GT_INC)>"| 2>&1 gcc -M -xc++ -|grep -o "[^ ]*/$(_GT_INC)")
+ifneq (x$(_SYS_GT), x)
+HAVE_GT:=1
+GTINC:=
+GTLIBS:=-lgtest -lgtest_main
 endif
 endif
 
@@ -144,7 +154,7 @@ DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(UT_C_TESTS))
 DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(UT_CPP_TESTS))
 endif
 
-ifdef UT_GT
+ifdef HAVE_GT
 GT_IHDR:='^\#include.*gtest/gtest.h'
 ifneq ($(MAKECMDGOALS),mrproper)
 GT_CC_TESTS:=$(shell find $(UT_DIR) -path '*/.*/*' -prune -o \( -type f -name '*test.cc' \) -exec grep -l $(GT_IHDR) '{}' \;)
@@ -216,7 +226,7 @@ else
 #FAIL_ACTION:=(rm -f $@ ; exit 1)
 FAIL_ACTION:=true
 endif
-$(UT_CACHE)/%.py.d: $(UT_CACHE)/.gitignore %.py
+$(UT_CACHE)/%.py.d: $(UT_CACHE)/.keep %.py
 	$(AT)$(MKDIR) -p $(@D)
 	$(AT)$(UTSCRIPTS)/mkpydep.py -t $*.py -o $@ $(PYTO) && touch $(UT_CACHE)/$*.py.passed || $(FAIL_ACTION)
 endif
@@ -244,45 +254,65 @@ watch:
 	$(AT)UT_DIR="$(UT_DIR)" UT_PROJ="$(UT_PROJ)" UT_VERBOSE="$(UT_VERBOSE)" UT_FAST="$(UT_FAST)" UT_SLOW="$(UT_SLOW)" $(UTSCRIPTS)/watch.sh $(UTARGS)
 
 $(UT_UT):
-	$(AT)echo "error: could not find \`$(UT_UT)/\` in \`$(UT_PROJ)\`. Try to init a new ut project there, eg: \`ut init\`"
+	$(AT)echo "error: could not find \`$(UT_UT)/\` in \`$(UT_PROJ)\`. Try to init a new UT project there, eg: \`ut init\`"
 	$(AT)exit 1
-$(UT_CACHE)/.gitignore: $(UT_UT)
+$(UT_CACHE)/.keep: $(UT_UT)
 	$(AT)$(MKDIR) -p $(@D) && \
-	echo -e "# Created by ut automatically.\n*" > $(UT_CACHE)/.gitignore && \
-	echo "Signature: 8a477f597d28d172789f06886806bc55" > $(UT_CACHE)/CACHEDIR.TAG && \
-	echo "# This file is a cache directory tag created by ut." >> $(UT_CACHE)/CACHEDIR.TAG && \
-	echo "# For information about cache directory tags, see https://bford.info/cachedir/" >> $(UT_CACHE)/CACHEDIR.TAG && \
-	echo "# ut cache directory #" > $(UT_CACHE)/README.md && \
-	echo "" >> $(UT_CACHE)/README.md && \
-	echo "This directory contains data from ut." >> $(UT_CACHE)/README.md && \
-	echo "" >> $(UT_CACHE)/README.md && \
-	echo "**Do not** commit this to version control." >> $(UT_CACHE)/README.md && \
-	echo "" >> $(UT_CACHE)/README.md && \
-	echo "See [the docs](https://github.com/nsauzede/.ut/blob/main/README.md) for more information." >> $(UT_CACHE)/README.md
+	echo -e "# Created by UT automatically.\n*" > $(@D)/.gitignore && \
+	echo "Signature: 8a477f597d28d172789f06886806bc55" > $(@D)/CACHEDIR.TAG && \
+	echo "# This file is a cache directory tag created by UT." >> $(@D)/CACHEDIR.TAG && \
+	echo "# For information about cache directory tags, see https://bford.info/cachedir/" >> $(@D)/CACHEDIR.TAG && \
+	echo "# UT cache directory #" > $(@D)/README.md && \
+	echo "" >> $(@D)/README.md && \
+	echo "This directory contains data from UT's cache." >> $(@D)/README.md && \
+	echo "" >> $(@D)/README.md && \
+	echo "**Do not** commit this to version control." >> $(@D)/README.md && \
+	echo "" >> $(@D)/README.md && \
+	echo "See [the docs](https://github.com/nsauzede/.ut/blob/main/README.md) for more information." >> $(@D)/README.md && \
+	touch $@
 
-ifdef UT_GT
-$(UT_GT):
+$(UT_3P)/.keep: $(UT_UT)
 	$(AT)$(MKDIR) -p $(@D) && \
-	(cd $(@D) && $(GIT) clone https://github.com/google/googletest.git && \
-	    cd googletest && mkdir build && cd build && cmake .. && make)
-endif
+	echo -e "# Created by UT automatically.\n*" > $(@D)/.gitignore && \
+	echo "Signature: 8a477f597d28d172789f06886806bc55" > $(@D)/CACHEDIR.TAG && \
+	echo "# This file is a cache directory tag created by UT." >> $(@D)/CACHEDIR.TAG && \
+	echo "# For information about cache directory tags, see https://bford.info/cachedir/" >> $(@D)/CACHEDIR.TAG && \
+	echo "# UT 3rd-party directory #" > $(@D)/README.md && \
+	echo "" >> $(@D)/README.md && \
+	echo "This directory contains data from UT's 3rd-party deps." >> $(@D)/README.md && \
+	echo "" >> $(@D)/README.md && \
+	echo "**Do not** commit this to version control." >> $(@D)/README.md && \
+	echo "" >> $(@D)/README.md && \
+	echo "See [the docs](https://github.com/nsauzede/.ut/blob/main/README.md) for more information." >> $(@D)/README.md && \
+	touch $@
 
-$(UT_CACHE)/%.c.d: $(UT_CACHE)/.gitignore %.c
+#ifdef UT_GT
+#$(UT_GT)/.keep: $(UT_3P)/.keep
+#	echo "atD=$(@D) UT_GT=$(UT_GT) UT_3P=$(UT_3P)"
+#	$(AT)$(MKDIR) -p $(@D) && \
+#	(cd $(@D) && $(GIT) clone https://github.com/google/googletest.git && \
+#	    cd googletest && mkdir build && cd build && cmake .. && make) && \
+#	touch $@
+#endif
+
+$(UT_CACHE)/%.c.d: $(UT_CACHE)/.keep %.c
 	$(AT)$(MKDIR) -p $(@D) && \
 	(gcc -MM $(CFLAGS) $*.c > $@.orig 2>&1 \
 	    || (cat $@.orig | $(CCFILTER) ; $(RM) $@.orig ; false) \
 	    && (cat $@.orig | $(UTSCRIPTS)/mkdep.py $(PWD) > $@ ; \
 	        $(RM) $@.orig))
 
-$(UT_CACHE)/%.cpp.d: $(UT_CACHE)/.gitignore %.cpp
+$(UT_CACHE)/%.cpp.d: $(UT_CACHE)/.keep %.cpp
 	$(AT)$(MKDIR) -p $(@D) && \
 	(g++ -MM $(CXXFLAGS) $*.cpp > $@.orig 2>&1 \
 	    || (cat $@.orig | $(CCFILTER) ; $(RM) $@.orig ; false) \
 	    && (cat $@.orig | $(UTSCRIPTS)/mkdep.py $(PWD) > $@ ; \
 	        $(RM) $@.orig))
 
-ifdef UT_GT
-$(UT_CACHE)/%.cc.gt.d: $(UT_CACHE)/.gitignore $(UT_GT) %.cc
+ifdef HAVE_GT
+#$(UT_CACHE)/%.cc.gt.d: $(UT_CACHE)/.keep $(UT_GT)/.keep %.cc
+#$(UT_CACHE)/%.cc.gt.d: $(UT_CACHE)/.keep %.cc
+$(UT_CACHE)/%.cc.gt.d: %.cc
 	$(AT)$(MKDIR) -p $(@D) && \
 	(g++ -MM $(CXXFLAGS) $*.cc > $@.orig 2>&1 \
 	    || (cat $@.orig | $(CCFILTER) ; $(RM) $@.orig ; false) \
@@ -329,21 +359,23 @@ $(UT_CACHE)/%.cpp.fast.passed: CXX=$(CXX_FAST)
 $(UT_CACHE)/%.cpp.fast.passed: CXXFLAGS+=-O0
 $(UT_CACHE)/%.cpp.fast.passed: $(UT_CACHE)/%.cpp.fast.exe ; $(TEST_FAST_PASSED)
 
-$(UT_CACHE)/%.cc.fast.gt.passed: CXX=$(CXX_FAST)
-$(UT_CACHE)/%.cc.fast.gt.passed: CXXFLAGS+=-O0 -I$(GTI)
-$(UT_CACHE)/%.cc.fast.gt.passed: LDFLAGS+=-L$(GTL) -lgtest -lgtest_main
-$(UT_CACHE)/%.cc.fast.gt.passed: UTO=$(GTO)
-$(UT_CACHE)/%.cc.fast.gt.passed: $(UT_CACHE)/%.cc.fast.exe ; $(TEST_FAST_PASSED)
-
 $(UT_CACHE)/%.cpp.slow.passed: CXX=$(CXX_SLOW)
 $(UT_CACHE)/%.cpp.slow.passed: CXXFLAGS+=-O0 -g
 $(UT_CACHE)/%.cpp.slow.passed: $(UT_CACHE)/%.cpp.slow.exe ; $(TEST_SLOW_PASSED)
 
+ifdef HAVE_GT
+$(UT_CACHE)/%.cc.fast.gt.passed: CXX=$(CXX_FAST)
+$(UT_CACHE)/%.cc.fast.gt.passed: CXXFLAGS+=-O0 $(GTINC)
+$(UT_CACHE)/%.cc.fast.gt.passed: LDFLAGS+=$(GTLIBS)
+$(UT_CACHE)/%.cc.fast.gt.passed: UTO=$(GTO)
+$(UT_CACHE)/%.cc.fast.gt.passed: $(UT_CACHE)/%.cc.fast.exe ; $(TEST_FAST_PASSED)
+
 $(UT_CACHE)/%.cc.slow.gt.passed: CXX=$(CXX_SLOW)
-$(UT_CACHE)/%.cc.slow.gt.passed: CXXFLAGS+=-O0 -g -I$(GTI)
-$(UT_CACHE)/%.cc.slow.gt.passed: LDFLAGS+=-L$(GTL) -lgtest -lgtest_main
+$(UT_CACHE)/%.cc.slow.gt.passed: CXXFLAGS+=-O0 -g $(GTINC)
+$(UT_CACHE)/%.cc.slow.gt.passed: LDFLAGS+=$(GTLIBS)
 $(UT_CACHE)/%.cc.slow.gt.passed: UTO=$(GTO)
 $(UT_CACHE)/%.cc.slow.gt.passed: $(UT_CACHE)/%.cc.slow.exe ; $(TEST_SLOW_PASSED)
+endif
 
 tools/inww.exe: CFLAGS:=-Wall -Werror -O3
 tools/inww.exe: tools/inww.c
