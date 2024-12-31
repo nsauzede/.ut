@@ -10,6 +10,9 @@ UTSCRIPTS:=$(UTPATH)/tools
 UT_DIR?=.
 
 -include ut*.mk
+ifneq (`realpath .`, `realpath $(UT_DIR)`)
+-include $(UT_DIR)/ut*.mk
+endif
 
 MKDIR:=mkdir
 VALGRIND?=valgrind
@@ -124,14 +127,16 @@ SILENCEMAKE_:=-s
 SILENCEMAKE_1:=
 SILENCEMAKE:=$(SILENCEMAKE_$(V))
 
+# Note: the "-path '*/.*/*' -prune" construct below, is used to skip (intermediary) folders whose
+# name starts with a dot, eg: like `.3p/` or `.cache/`; it does not however skip files with leading dot.
 UT_IHDR:='^\#include.*ut/ut.h'
 DEPS:=
 ifneq ($(MAKECMDGOALS),mrproper)
-UT_C_TESTS:=$(shell find $(UT_DIR) -path './.*' -prune -o \( -type f -name '*test.c' \) -exec grep -l $(UT_IHDR) '{}' \;)
+UT_C_TESTS:=$(shell find $(UT_DIR) -path '*/.*/*' -prune -o \( -type f -name '*test.c' \) -exec grep -l $(UT_IHDR) '{}' \;)
 ifneq (x$(UT_C_TESTS),x)
 UT_C_TESTS:=$(shell realpath --relative-to=. $(UT_C_TESTS))
 endif
-UT_CPP_TESTS:=$(shell find $(UT_DIR) -path './.*' -prune -o \( -type f -name '*test.cpp' \) -exec grep -l $(UT_IHDR) '{}' \;)
+UT_CPP_TESTS:=$(shell find $(UT_DIR) -path '*/.*/*' -prune -o \( -type f -name '*test.cpp' \) -exec grep -l $(UT_IHDR) '{}' \;)
 ifneq (x$(UT_CPP_TESTS),x)
 UT_CPP_TESTS:=$(shell realpath --relative-to=. $(UT_CPP_TESTS))
 endif
@@ -142,7 +147,7 @@ endif
 ifdef UT_GT
 GT_IHDR:='^\#include.*gtest/gtest.h'
 ifneq ($(MAKECMDGOALS),mrproper)
-GT_CC_TESTS:=$(shell find $(UT_DIR) -path './.*' -prune -o \( -type f -name '*test.cc' \) -exec grep -l $(GT_IHDR) '{}' \;)
+GT_CC_TESTS:=$(shell find $(UT_DIR) -path '*/.*/*' -prune -o \( -type f -name '*test.cc' \) -exec grep -l $(GT_IHDR) '{}' \;)
 ifneq (x$(GT_CC_TESTS),x)
 GT_CC_TESTS:=$(shell realpath --relative-to=. $(GT_CC_TESTS))
 endif
@@ -198,7 +203,7 @@ GTO:=--gtest_brief=1
 endif
 
 ifdef PYTEST
-PYTESTS_:=$(shell find $(UT_DIR) -path './.*' -prune -o \( -name "test_*.py" -o -name "*_test.py" \) -print)
+PYTESTS_:=$(shell find $(UT_DIR) -path '*/.*/*' -prune -o \( -name "test_*.py" -o -name "*_test.py" \) -print)
 PYTESTS:=$(addprefix PYT/, $(PYTESTS_))
 ifneq ($(MAKECMDGOALS),mrproper)
 DEPS+=$(patsubst %,$(UT_CACHE)/%.d,$(PYTESTS_))
@@ -243,7 +248,7 @@ $(UT_UT):
 	$(AT)exit 1
 $(UT_CACHE)/.gitignore: $(UT_UT)
 	$(AT)$(MKDIR) -p $(@D) && \
-	echo "# Created by ut automatically.\n*" > $(UT_CACHE)/.gitignore && \
+	echo -e "# Created by ut automatically.\n*" > $(UT_CACHE)/.gitignore && \
 	echo "Signature: 8a477f597d28d172789f06886806bc55" > $(UT_CACHE)/CACHEDIR.TAG && \
 	echo "# This file is a cache directory tag created by ut." >> $(UT_CACHE)/CACHEDIR.TAG && \
 	echo "# For information about cache directory tags, see https://bford.info/cachedir/" >> $(UT_CACHE)/CACHEDIR.TAG && \
@@ -346,7 +351,7 @@ tools/inww.exe: tools/inww.c
 	$(AT)strip --strip-all $@
 
 mrproper:
-	$(AT)$(RM) -rf $(UT_CACHE)
+	$(AT)$(RM) -rf `realpath $(UT_CACHE)/$(UT_DIR)`
 
 ifneq ($(MAKECMDGOALS),mrproper)
 include $(DEPS)

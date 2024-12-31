@@ -1,11 +1,11 @@
-# ut project: ".ut", from ut version 0.0.12
-# WARNING: do not put explicit Make targets in this file!
+# ut project: ".ut", from ut version 0.0.13
+# WARNING: do not put any explicit Make targets in this file!
 
-#UT_FAST:=1
-#UT_SLOW:=1
-#UT_NOPY:=1
-#UT_NOGT:=1
-#UT_VERBOSE:=1
+UT_FAST:=0
+UT_SLOW:=0
+UT_NOPY:=0
+UT_NOGT:=0
+UT_VERBOSE:=0
 
 # Usual macros (CFLAGS, CXXFLAGS, LDFLAGS, LDLIBS, LD_LIBRARY_PATH, ..) can be defined, eg:
 #CXXFLAGS:=-I this/path -D THAT_SYMBOL ...

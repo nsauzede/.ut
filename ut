@@ -122,7 +122,7 @@ else
 SILENCEMAKE=-s
 fi
 
-UT_DIR=""
+UT_DIR="."
 UTCMD=${UTARG}
 case ${UTCMD} in
 ${UTINIT}) :
@@ -230,8 +230,6 @@ fi
 DOTUT=".ut"
 UT_UT="${UT_PROJ}/${DOTUT}"
 UT_MK="ut.mk"
-UTCACHE="cache"
-UT_CACHE="${UT_UT}/${UTCACHE}"
 
 if [ -n "${DO_INIT}" ]; then
     if [ -d ${UT_UT} ]; then
@@ -242,35 +240,34 @@ if [ -n "${DO_INIT}" ]; then
         fi
     fi
     mkdir -p ${UT_UT}
-    touch ${UT_UT}/.keep
-    rm -Rf ${UT_CACHE}
+    (cd ${UT_UT}; touch .keep; rm -Rf .cache .3p; ln -sf ../.cache; ln -sf ../.3p)
     echo "# ut project: \"${UT_PKG}\", from ut version ${UT_VERSION}" > ${UT_MK}
-    echo "# WARNING: do not put explicit Make targets in this file!" >> ${UT_MK}
+    echo "# WARNING: do not put any explicit Make targets in this file!" >> ${UT_MK}
     echo "" >> ${UT_MK}
     if [ -n "${UT_FAST}" ]; then
         echo "UT_FAST:=${UT_FAST}" >> ${UT_MK}
     else
-        echo "#UT_FAST:=1" >> ${UT_MK}
+        echo "UT_FAST:=0" >> ${UT_MK}
     fi
     if [ -n "${UT_SLOW}" ]; then
         echo "UT_SLOW:=${UT_SLOW}" >> ${UT_MK}
     else
-        echo "#UT_SLOW:=1" >> ${UT_MK}
+        echo "UT_SLOW:=0" >> ${UT_MK}
     fi
     if [ -n "${UT_NOPY}" ]; then
         echo "UT_NOPY:=${UT_NOPY}" >> ${UT_MK}
     else
-        echo "#UT_NOPY:=1" >> ${UT_MK}
+        echo "UT_NOPY:=0" >> ${UT_MK}
     fi
     if [ -n "${UT_NOGT}" ]; then
         echo "UT_NOGT:=${UT_NOGT}" >> ${UT_MK}
     else
-        echo "#UT_NOGT:=1" >> ${UT_MK}
+        echo "UT_NOGT:=0" >> ${UT_MK}
     fi
     if [ -n "${UT_VERBOSE}" ]; then
         echo "UT_VERBOSE:=${UT_VERBOSE}" >> ${UT_MK}
     else
-        echo "#UT_VERBOSE:=1" >> ${UT_MK}
+        echo "UT_VERBOSE:=0" >> ${UT_MK}
     fi
     echo "" >> ${UT_MK}
     echo "# Usual macros (CFLAGS, CXXFLAGS, LDFLAGS, LDLIBS, LD_LIBRARY_PATH, ..) can be defined, eg:" >> ${UT_MK}
