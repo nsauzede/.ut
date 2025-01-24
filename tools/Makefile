@@ -240,7 +240,7 @@ ifneq ("x$(UT_FAST)","x1")
 PASSED+=$(PASSED_SLOW)
 endif
 
-all: $(PASSED)
+all: $(UT_CUSTOM_ALL) $(PASSED)
 
 dry-run: $(PASSED)
 
@@ -295,14 +295,14 @@ $(UT_3P)/.keep: $(UT_UT)
 #	touch $@
 #endif
 
-$(UT_CACHE)/%.c.d: $(UT_CACHE)/.keep %.c
+$(UT_CACHE)/%.c.d: $(UT_CACHE)/.keep %.c | $(UT_CUSTOM_DEPS)
 	$(AT)$(MKDIR) -p $(@D) && \
 	(gcc -MM $(CFLAGS) $*.c > $@.orig 2>&1 \
 	    || (cat $@.orig | $(CCFILTER) ; $(RM) $@.orig ; false) \
 	    && (cat $@.orig | $(UTSCRIPTS)/mkdep.py $(PWD) > $@ ; \
 	        $(RM) $@.orig))
 
-$(UT_CACHE)/%.cpp.d: $(UT_CACHE)/.keep %.cpp
+$(UT_CACHE)/%.cpp.d: $(UT_CACHE)/.keep %.cpp | $(UT_CUSTOM_DEPS)
 	$(AT)$(MKDIR) -p $(@D) && \
 	(g++ -MM $(CXXFLAGS) $*.cpp > $@.orig 2>&1 \
 	    || (cat $@.orig | $(CCFILTER) ; $(RM) $@.orig ; false) \
@@ -312,7 +312,7 @@ $(UT_CACHE)/%.cpp.d: $(UT_CACHE)/.keep %.cpp
 ifdef HAVE_GT
 #$(UT_CACHE)/%.cc.gt.d: $(UT_CACHE)/.keep $(UT_GT)/.keep %.cc
 #$(UT_CACHE)/%.cc.gt.d: $(UT_CACHE)/.keep %.cc
-$(UT_CACHE)/%.cc.gt.d: %.cc
+$(UT_CACHE)/%.cc.gt.d: %.cc | $(UT_CUSTOM_DEPS)
 	$(AT)$(MKDIR) -p $(@D) && \
 	(g++ -MM $(CXXFLAGS) $*.cc > $@.orig 2>&1 \
 	    || (cat $@.orig | $(CCFILTER) ; $(RM) $@.orig ; false) \

@@ -132,8 +132,10 @@ Some optional tools/scripts are provided by UT, to accelerate the TDD-loop appro
 1) a `Makefile` is provided to automatically clean/build/test all C/C++ adequate test files
 2) a `watch.sh` shell script constinuously monitors file-system changes and re-run modified tests
 3) an `ut` shell script abstracts these `clean`, `test`, `watch`, ... commands. See `ut --help`
-4) `ut` supports Bash auto-completion; register it in `.bashrc` like so: `[ -x ~/.ut/ut ] && . ~/.ut/ut`
-(just adapt to where you did install UT repo on your system)
+4) `ut` supports Bash auto-completion: add `ut` script location to PATH then register it in `.bashrc`:
+```shell
+ut=`command -v ut` && [ -x $ut ] && . $ut
+```
 
 Once you cloned the UT git directory somewhere, and added its location in your PATH, you don't even need to clone it again
 in all your projects, you just have to use the `ut init` command (akin to eg: `git init`) to initialize them.

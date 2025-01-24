@@ -6,8 +6,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-utcalled=$_
-if [ $utcalled == $0 ]; then
+if [ "${BASH_SOURCE[0]}" == "${0}" ]; then
 
 UTOPTHELP="--help"
 UTOPTVERSION="--version"
@@ -277,6 +276,8 @@ if [ -n "${DO_INIT}" ]; then
     echo "#CXXFLAGS:=-I this/path -D THAT_SYMBOL ..." >> ${UT_MK}
     echo "# Or even UT internal ones, like VGO (valgrind options), eg:" >> ${UT_MK}
     echo "#VGO:=--suppressions=my_vg.supp --gen-suppressions=all" >> ${UT_MK}
+    echo "#UT_CUSTOM_ALL+=<custom 'all' additional targets>" >> ${UT_MK}
+    echo "#UT_CUSTOM_DEPS+=<custom additional dependencies>" >> ${UT_MK}
     echo -e "\tCreated UT project"
     exit 0
 fi
@@ -346,7 +347,7 @@ ut_complete()
 }
 complete -o nospace -F ut_complete ${ut}
 
-unset utcalled utbin utfull utroot ut utbinpath
+unset utbin utfull utroot ut utbinpath
 
 # End of autocomplete case.
 

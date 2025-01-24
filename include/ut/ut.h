@@ -25,7 +25,7 @@
 #include <sys/ioctl.h>  // ioctl
 #endif
 
-#define UT_VERSION "0.0.13"
+#define UT_VERSION "0.0.14"
 
 #define CTOR __attribute((constructor))
 #define TRY() (setjmp(UT.jmpbuf) == 0)
