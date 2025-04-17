@@ -513,12 +513,12 @@ int ut_assert_eq_str(const char *file, int line, const char *func, const char *e
     }
     return expr;
 }
+#ifdef __cplusplus
+}
+#endif
 #ifndef UT_NO_MAIN
 int main(int argc, char *argv[]) { return ut_main_(argc, argv); }
 #define main ut_main
-#endif
-#ifdef __cplusplus
-}
 #endif
 #ifdef __cplusplus
 #define ASSERT_EQ_(va_args, lhs, rhs) ut_assert_eq_(__FILE__,__LINE__,__func__,va_args, lhs, rhs)

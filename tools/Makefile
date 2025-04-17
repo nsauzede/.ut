@@ -205,11 +205,15 @@ PYTO+=-v
 endif
 endif
 
+UTO:=
 ifeq ("x$(UT_VERBOSE)", "x1")
-UTO:=-v
+UTO+=-v
 GTO:=
 else
 GTO:=--gtest_brief=1
+endif
+ifeq ("x$(UT_NOCAP)", "x1")
+UTO+=-s
 endif
 
 ifdef PYTEST

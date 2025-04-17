@@ -18,6 +18,7 @@ UTOPTFORCE="-f"
 UTOPTCLEAN="-c"
 UTOPTKEEP="-k"
 UTOPTVERBOSE="-v"
+UTOPTNOCAP="-s"
 UTOPTPATH="-C"
 
 UTINIT="init"
@@ -33,7 +34,7 @@ UTBIN=$0
 UTARG=$1
 
 if [ "x${UTARG}" = "xcomplete" ]; then
-    echo "$UTOPTHELP $UTOPTVERSION $UTOPTFAST $UTOPTSLOW $UTOPTNOPY $UTOPTNOGT $UTOPTFORCE $UTOPTCLEAN $UTOPTKEEP $UTOPTVERBOSE $UTOPTPATH $UTINIT $UTHELP $UTVERSION $UTCLEAN $UTTEST $UTRETEST $UTWATCH"
+    echo "$UTOPTHELP $UTOPTVERSION $UTOPTFAST $UTOPTSLOW $UTOPTNOPY $UTOPTNOGT $UTOPTFORCE $UTOPTCLEAN $UTOPTKEEP $UTOPTVERBOSE $UTOPTNOCAP $UTOPTPATH $UTINIT $UTHELP $UTVERSION $UTCLEAN $UTTEST $UTRETEST $UTWATCH"
     exit 0
 fi
 
@@ -89,6 +90,10 @@ while true; do
         ;;
     ${UTOPTVERBOSE}) :
         UT_VERBOSE=1
+        shift
+        ;;
+    ${UTOPTNOCAP}) :
+        UT_NOCAP=1
         shift
         ;;
     ${UTOPTPATH}) :
@@ -204,6 +209,7 @@ if [ -n "${DO_HELP}" ]; then
     echo -e "      ${UTOPTCLEAN}\t\tClean first before running command"
     echo -e "      ${UTOPTKEEP}\t\tKeep intermediate executables"
     echo -e "      ${UTOPTVERBOSE}\t\tIncrease verbosity"
+    echo -e "      ${UTOPTNOCAP}\t\tDo not capture test output"
     echo -e "      ${UTOPTPATH} <DIRECTORY>\tSet project PATH to DIRECTORY instead of default PWD"
     echo -e ""
     echo -e "Commands:"
@@ -271,6 +277,11 @@ if [ -n "${DO_INIT}" ]; then
     else
         echo "UT_VERBOSE:=0" >> ${UT_MK}
     fi
+    if [ -n "${UT_NOCAP}" ]; then
+        echo "UT_NOCAP:=${UT_NOCAP}" >> ${UT_MK}
+    else
+        echo "UT_NOCAP:=0" >> ${UT_MK}
+    fi
     echo "" >> ${UT_MK}
     echo "# Usual macros (CFLAGS, CXXFLAGS, LDFLAGS, LDLIBS, LD_LIBRARY_PATH, ..) can be defined, eg:" >> ${UT_MK}
     echo "#CXXFLAGS:=-I this/path -D THAT_SYMBOL ..." >> ${UT_MK}
@@ -304,19 +315,19 @@ UT_DIR=.
 fi
 
 if [ -n "${UT_OPTCLEAN}" -o -n "${DO_CLEAN}" ]; then
-    UT_ARGS="${UT_ARGS}" UT_UT="${UT_UT}" UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" UT_SLOW="${UT_SLOW}" UT_NOPY="${UT_NOPY}" UT_NOGT="${UT_NOGT}" UT_KEEP="${UT_KEEP}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" mrproper
+    UT_ARGS="${UT_ARGS}" UT_UT="${UT_UT}" UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_NOCAP="${UT_NOCAP}" UT_FAST="${UT_FAST}" UT_SLOW="${UT_SLOW}" UT_NOPY="${UT_NOPY}" UT_NOGT="${UT_NOGT}" UT_KEEP="${UT_KEEP}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" mrproper
 fi
 
 if [ -n "${DO_CLEAN}" ]; then
     # already done
     exit 0
 elif [ -n "${DO_TEST}" ]; then
-    UT_ARGS="${UT_ARGS}" UT_UT="${UT_UT}" UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" UT_SLOW="${UT_SLOW}" UT_NOPY="${UT_NOPY}" UT_NOGT="${UT_NOGT}" UT_KEEP="${UT_KEEP}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" all
+    UT_ARGS="${UT_ARGS}" UT_UT="${UT_UT}" UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_NOCAP="${UT_NOCAP}" UT_FAST="${UT_FAST}" UT_SLOW="${UT_SLOW}" UT_NOPY="${UT_NOPY}" UT_NOGT="${UT_NOGT}" UT_KEEP="${UT_KEEP}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" all
 elif [ -n "${DO_RETEST}" ]; then
-    UT_ARGS="${UT_ARGS}" UT_UT="${UT_UT}" UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" UT_SLOW="${UT_SLOW}" UT_NOPY="${UT_NOPY}" UT_NOGT="${UT_NOGT}" UT_KEEP="${UT_KEEP}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" mrproper
-    UT_ARGS="${UT_ARGS}" UT_UT="${UT_UT}" UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" UT_SLOW="${UT_SLOW}" UT_NOPY="${UT_NOPY}" UT_NOGT="${UT_NOGT}" UT_KEEP="${UT_KEEP}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" all
+    UT_ARGS="${UT_ARGS}" UT_UT="${UT_UT}" UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_NOCAP="${UT_NOCAP}" UT_FAST="${UT_FAST}" UT_SLOW="${UT_SLOW}" UT_NOPY="${UT_NOPY}" UT_NOGT="${UT_NOGT}" UT_KEEP="${UT_KEEP}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" mrproper
+    UT_ARGS="${UT_ARGS}" UT_UT="${UT_UT}" UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_NOCAP="${UT_NOCAP}" UT_FAST="${UT_FAST}" UT_SLOW="${UT_SLOW}" UT_NOPY="${UT_NOPY}" UT_NOGT="${UT_NOGT}" UT_KEEP="${UT_KEEP}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" all
 elif [ -n "${DO_WATCH}" ]; then
-    UT_ARGS="${UT_ARGS}" UT_UT="${UT_UT}" UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_FAST="${UT_FAST}" UT_SLOW="${UT_SLOW}" UT_NOPY="${UT_NOPY}" UT_NOGT="${UT_NOGT}" UT_KEEP="${UT_KEEP}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" watch
+    UT_ARGS="${UT_ARGS}" UT_UT="${UT_UT}" UT_DIR="${UT_DIR}" UT_PROJ="${UT_PROJ}" UT_VERSION="${UT_VERSION}" UT_VERBOSE="${UT_VERBOSE}" UT_NOCAP="${UT_NOCAP}" UT_FAST="${UT_FAST}" UT_SLOW="${UT_SLOW}" UT_NOPY="${UT_NOPY}" UT_NOGT="${UT_NOGT}" UT_KEEP="${UT_KEEP}" make ${SILENCEMAKE} -C "${UT_PROJ}" -f "${UTMAKEFILE}" watch
 else
     echo "Error: Nothing done ?!"
     exit 1
