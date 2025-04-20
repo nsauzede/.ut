@@ -516,10 +516,6 @@ int ut_assert_eq_str(const char *file, int line, const char *func, const char *e
 #ifdef __cplusplus
 }
 #endif
-#ifndef UT_NO_MAIN
-int main(int argc, char *argv[]) { return ut_main_(argc, argv); }
-#define main ut_main
-#endif
 #ifdef __cplusplus
 #define ASSERT_EQ_(va_args, lhs, rhs) ut_assert_eq_(__FILE__,__LINE__,__func__,va_args, lhs, rhs)
 #define ASSERT_NEQ_(va_args, lhs, rhs) ut_assert_neq_(__FILE__,__LINE__,__func__,va_args, lhs, rhs)
@@ -536,6 +532,53 @@ int ut_assert_neq_(const char *file, int line, const char *func, const char *va_
     void*: ut_assert_neq_ptr)(__FILE__,__LINE__,__func__,va_args,lhs, rhs)
 #endif
 #define ASSERT_EQ(...) ASSERT_EQ_(#__VA_ARGS__, __VA_ARGS__)
-#define EXPECT_EQ(...) ASSERT_EQ(__VA_ARGS__)
+//#define EXPECT_EQ(...) ASSERT_EQ(__VA_ARGS__)
 #define ASSERT_NEQ(...) ASSERT_NEQ_(#__VA_ARGS__, __VA_ARGS__)
+
+int expect_fmt(const char *file, int line, const char *func, const char *expr_str, int expr, const char *fmt, ...) {
+    if (!expr) {
+        va_list args;
+        va_start(args, fmt);
+        printf("%s:%d:%s: ", file, line, func);
+        vprintf(fmt, args);
+        printf("\n");
+        va_end(args);
+    }
+    return expr;
+}
+int expect(const char *macro, const char *file, int line, const char *func, const char *expr_str, int expr) {
+    return expect_fmt(file, line, func, expr_str, expr, "\n>       %s(%s)\nE       %s(%d)\n", macro, expr_str, macro, expr);
+}
+int expect_eq(const char *macro, const char *file, int line, const char *func, const char *expr_str, int a, int b) {
+    return expect_fmt(file, line, func, expr_str, a == b, "\n>       %s(%s)\nE       %s(%d, %d)\n", macro, expr_str, macro, a, b);
+}
+
+#define PP_NARG(...) PP_NARG_(__VA_ARGS__, PP_RSEQ_N())
+#define PP_NARG_(...) PP_ARG_N(__VA_ARGS__)
+#define PP_ARG_N(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,N,...) N
+#define PP_RSEQ_N() 10,9,8,7,6,5,4,3,2,1,0
+#define CONCATENATE(arg1, arg2) CONCATENATE1(arg1, arg2)
+#define CONCATENATE1(arg1, arg2) arg1##arg2
+
+#define EXPECT_EQ(...) CONCATENATE(EXPECT_EQ_, PP_NARG(__VA_ARGS__))(__FILE__,__LINE__,__func__,#__VA_ARGS__, __VA_ARGS__)
+#define EXPECT_EQ_2_(fi,l,fn,ex, ...) expect_eq("EXPECT_EQ",fi,l,fn,#__VA_ARGS__, __VA_ARGS__)
+#define EXPECT_EQ_2(fi,l,fn,ex, a, b) EXPECT_EQ_2_(fi,l,fn,ex, a, b)
+#define EXPECT_EQ_3(fi,l,fn,ex, a, b, fmt) expect_fmt(fi,l,fn,ex, (a) == (b), (fmt))
+#define EXPECT_EQ_4(fi,l,fn,ex, a, b, fmt, a1) expect_fmt(fi,l,fn,ex, (a) == (b), (fmt), (a1))
+#define EXPECT_EQ_5(fi,l,fn,ex, a, b, fmt, a1, a2) expect_fmt(fi,l,fn,ex, (a) == (b), (fmt), (a1), (a2))
+#define EXPECT_EQ_6(fi,l,fn,ex, a, b, fmt, a1, a2, a3) expect_fmt(fi,l,fn,ex, (a) == (b), (fmt), (a1), (a2), (a3))
+
+#define EXPECT(...) CONCATENATE(EXPECT_, PP_NARG(__VA_ARGS__))(__FILE__,__LINE__,__func__,#__VA_ARGS__, __VA_ARGS__)
+#define EXPECT_1_(fi,l,fn,ex, ...) expect("EXPECT",fi,l,fn,#__VA_ARGS__, __VA_ARGS__)
+#define EXPECT_1(fi,l,fn,ex, e) EXPECT_1_(fi,l,fn,ex, e)
+#define EXPECT_2(fi,l,fn,ex, e, fmt) expect_fmt(fi,l,fn,ex, (e), (fmt))
+#define EXPECT_3(fi,l,fn,ex, e, fmt, a1) expect_fmt(fi,l,fn,ex, (e), (fmt), (a1))
+#define EXPECT_4(fi,l,fn,ex, e, fmt, a1, a2) expect_fmt(fi,l,fn,ex, (e), (fmt), (a1), (a2))
+#define EXPECT_5(fi,l,fn,ex, e, fmt, a1, a2, a3) expect_fmt(fi,l,fn,ex, (e), (fmt), (a1), (a2), (a3))
+#define EXPECT_6(fi,l,fn,ex, e, fmt, a1, a2, a3, a4) expect_fmt(fi,l,fn,ex, (e), (fmt), (a1), (a2), (a3), (a4))
+
+#ifndef UT_NO_MAIN
+int main(int argc, char *argv[]) { return ut_main_(argc, argv); }
+#define main ut_main
+#endif
 #endif/*UT_H__*/

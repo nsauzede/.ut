@@ -56,6 +56,11 @@ ifneq (0, $(shell command -v $(CLANGXX) > /dev/null 2>&1 ; echo $$?))
 CLANGXX:=
 endif
 
+IVERILOG?=iverilog
+ifneq (0, $(shell command -v $(IVERILOG) > /dev/null 2>&1 ; echo $$?))
+IVERILOG:=
+endif
+
 ifdef TCC
     CC_FAST:=$(TCC)
 else
