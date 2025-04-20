@@ -110,6 +110,7 @@ static struct UT_s {
     const char *cls, *met, *umet;
     const char *file, *func, *expr_str;
     int line, expr;
+    const char *macro;
     void (*ptr)();
     jmp_buf jmpbuf;
     int disabled;
@@ -430,7 +431,8 @@ int ut_main_(int argc, char *argv[]) {
                 ut_print_centered(width, BRED, '_', "%s", ut->met);
             }
             printf(BRED "%s" NRM":%d: in %s\n", ut->file, ut->line, ut->func);
-            printf("\t" BLUE "ASSERT" NRM "(%s)\n", ut->expr_str);
+            const char *macro = ut->macro ? ut->macro : "ASSERT";
+            printf("\t" BLUE "%s" NRM "(%s)\n", macro, ut->expr_str);
             if (ut_cap_bytes(&ut->cap_stdout)) {
                 ut_print_centered(width, NRM, '-', "Captured stdout call");
                 ut_cap_flush(&ut->cap_stdout);
@@ -450,10 +452,11 @@ int ut_main_(int argc, char *argv[]) {
             continue;
         }
         if (!ut->expr) {
+            const char *macro = ut->macro ? ut->macro : "ASSERT";
             if (ut->cls) {
-                printf(RED "FAILED" NRM " %s:%d::" BWHITE "%s::%s" NRM " - ASSERT(%s)\n", ut->file, ut->line, ut->cls, ut->met, ut->expr_str);
+                printf(RED "FAILED" NRM " %s:%d::" BWHITE "%s::%s" NRM " - %s(%s)\n", ut->file, ut->line, ut->cls, ut->met, macro, ut->expr_str);
             } else {
-                printf(RED "FAILED" NRM " %s:%d::" BWHITE "%s" NRM " - ASSERT(%s)\n", ut->file, ut->line, ut->met, ut->expr_str);
+                printf(RED "FAILED" NRM " %s:%d::" BWHITE "%s" NRM " - %s(%s)\n", ut->file, ut->line, ut->met, macro, ut->expr_str);
             }
         }
         ut = ut->next;
@@ -535,22 +538,44 @@ int ut_assert_neq_(const char *file, int line, const char *func, const char *va_
 //#define EXPECT_EQ(...) ASSERT_EQ(__VA_ARGS__)
 #define ASSERT_NEQ(...) ASSERT_NEQ_(#__VA_ARGS__, __VA_ARGS__)
 
-int expect_fmt(const char *file, int line, const char *func, const char *expr_str, int expr, const char *fmt, ...) {
+#if 0
+int ut_assert(const char *file, int line, const char *func, const char *expr_str, int expr) {
     if (!expr) {
-        va_list args;
-        va_start(args, fmt);
-        printf("%s:%d:%s: ", file, line, func);
-        vprintf(fmt, args);
-        printf("\n");
-        va_end(args);
+        ut_curr->file = file;
+        ut_curr->line = line;
+        ut_curr->func = !strcmp(func, ut_curr->umet) ? ut_curr->met : func;
+        ut_curr->expr_str = expr_str;
+        ut_curr->expr = expr;
+        THROW();
     }
     return expr;
 }
-int expect(const char *macro, const char *file, int line, const char *func, const char *expr_str, int expr) {
-    return expect_fmt(file, line, func, expr_str, expr, "\n>       %s(%s)\nE       %s(%d)\n", macro, expr_str, macro, expr);
+#endif
+int expect_fmt(const char *macro, const char *file, int line, const char *func, const char *expr_str, int expr, const char *fmt, ...) {
+    if (!expr) {
+        va_list args;
+        va_start(args, fmt);
+        printf("%s:%d:%s:%s: ", file, line, func, macro);
+        vprintf(fmt, args);
+        printf("\n");
+        va_end(args);
+
+        ut_curr->file = file;
+        ut_curr->line = line;
+        ut_curr->func = !strcmp(func, ut_curr->umet) ? ut_curr->met : func;
+        ut_curr->expr_str = expr_str;
+        ut_curr->expr = expr;
+        ut_curr->macro = macro;
+    }
+    return expr;
 }
-int expect_eq(const char *macro, const char *file, int line, const char *func, const char *expr_str, int a, int b) {
-    return expect_fmt(file, line, func, expr_str, a == b, "\n>       %s(%s)\nE       %s(%d, %d)\n", macro, expr_str, macro, a, b);
+int expect(const char *file, int line, const char *func, const char *expr_str, int expr) {
+    const char *macro = "EXPECT";
+    return expect_fmt(macro, file, line, func, expr_str, expr, "\n>       %s(%s)\nE       %s(%d)\n", macro, expr_str, macro, expr);
+}
+int expect_eq(const char *file, int line, const char *func, const char *expr_str, int a, int b) {
+    const char *macro = "EXPECT_EQ";
+    return expect_fmt(macro, file, line, func, expr_str, a == b, "\n>       %s(%s)\nE       %s(%d, %d)\n", macro, expr_str, macro, a, b);
 }
 
 #define PP_NARG(...) PP_NARG_(__VA_ARGS__, PP_RSEQ_N())
@@ -561,21 +586,21 @@ int expect_eq(const char *macro, const char *file, int line, const char *func, c
 #define CONCATENATE1(arg1, arg2) arg1##arg2
 
 #define EXPECT_EQ(...) CONCATENATE(EXPECT_EQ_, PP_NARG(__VA_ARGS__))(__FILE__,__LINE__,__func__,#__VA_ARGS__, __VA_ARGS__)
-#define EXPECT_EQ_2_(fi,l,fn,ex, ...) expect_eq("EXPECT_EQ",fi,l,fn,#__VA_ARGS__, __VA_ARGS__)
+#define EXPECT_EQ_2_(fi,l,fn,ex, ...) expect_eq(fi,l,fn,#__VA_ARGS__, __VA_ARGS__)
 #define EXPECT_EQ_2(fi,l,fn,ex, a, b) EXPECT_EQ_2_(fi,l,fn,ex, a, b)
-#define EXPECT_EQ_3(fi,l,fn,ex, a, b, fmt) expect_fmt(fi,l,fn,ex, (a) == (b), (fmt))
-#define EXPECT_EQ_4(fi,l,fn,ex, a, b, fmt, a1) expect_fmt(fi,l,fn,ex, (a) == (b), (fmt), (a1))
-#define EXPECT_EQ_5(fi,l,fn,ex, a, b, fmt, a1, a2) expect_fmt(fi,l,fn,ex, (a) == (b), (fmt), (a1), (a2))
-#define EXPECT_EQ_6(fi,l,fn,ex, a, b, fmt, a1, a2, a3) expect_fmt(fi,l,fn,ex, (a) == (b), (fmt), (a1), (a2), (a3))
+#define EXPECT_EQ_3(fi,l,fn,ex, a, b, fmt) expect_fmt("EXPECT_EQ",fi,l,fn,ex, (a) == (b), (fmt))
+#define EXPECT_EQ_4(fi,l,fn,ex, a, b, fmt, a1) expect_fmt("EXPECT_EQ",fi,l,fn,ex, (a) == (b), (fmt), (a1))
+#define EXPECT_EQ_5(fi,l,fn,ex, a, b, fmt, a1, a2) expect_fmt("EXPECT_EQ",fi,l,fn,ex, (a) == (b), (fmt), (a1), (a2))
+#define EXPECT_EQ_6(fi,l,fn,ex, a, b, fmt, a1, a2, a3) expect_fmt("EXPECT_EQ",fi,l,fn,ex, (a) == (b), (fmt), (a1), (a2), (a3))
 
 #define EXPECT(...) CONCATENATE(EXPECT_, PP_NARG(__VA_ARGS__))(__FILE__,__LINE__,__func__,#__VA_ARGS__, __VA_ARGS__)
-#define EXPECT_1_(fi,l,fn,ex, ...) expect("EXPECT",fi,l,fn,#__VA_ARGS__, __VA_ARGS__)
+#define EXPECT_1_(fi,l,fn,ex, ...) expect(fi,l,fn,#__VA_ARGS__, __VA_ARGS__)
 #define EXPECT_1(fi,l,fn,ex, e) EXPECT_1_(fi,l,fn,ex, e)
-#define EXPECT_2(fi,l,fn,ex, e, fmt) expect_fmt(fi,l,fn,ex, (e), (fmt))
-#define EXPECT_3(fi,l,fn,ex, e, fmt, a1) expect_fmt(fi,l,fn,ex, (e), (fmt), (a1))
-#define EXPECT_4(fi,l,fn,ex, e, fmt, a1, a2) expect_fmt(fi,l,fn,ex, (e), (fmt), (a1), (a2))
-#define EXPECT_5(fi,l,fn,ex, e, fmt, a1, a2, a3) expect_fmt(fi,l,fn,ex, (e), (fmt), (a1), (a2), (a3))
-#define EXPECT_6(fi,l,fn,ex, e, fmt, a1, a2, a3, a4) expect_fmt(fi,l,fn,ex, (e), (fmt), (a1), (a2), (a3), (a4))
+#define EXPECT_2(fi,l,fn,ex, e, fmt) expect_fmt("EXPECT",fi,l,fn,ex, (e), (fmt))
+#define EXPECT_3(fi,l,fn,ex, e, fmt, a1) expect_fmt("EXPECT",fi,l,fn,ex, (e), (fmt), (a1))
+#define EXPECT_4(fi,l,fn,ex, e, fmt, a1, a2) expect_fmt("EXPECT",fi,l,fn,ex, (e), (fmt), (a1), (a2))
+#define EXPECT_5(fi,l,fn,ex, e, fmt, a1, a2, a3) expect_fmt("EXPECT",fi,l,fn,ex, (e), (fmt), (a1), (a2), (a3))
+#define EXPECT_6(fi,l,fn,ex, e, fmt, a1, a2, a3, a4) expect_fmt("EXPECT",fi,l,fn,ex, (e), (fmt), (a1), (a2), (a3), (a4))
 
 #ifndef UT_NO_MAIN
 int main(int argc, char *argv[]) { return ut_main_(argc, argv); }

@@ -10,13 +10,11 @@
 
 TESTMETHOD(test_dummy) {
 #if 0
-    int a = 42, b = 43;
-    int res = EXPECT_EQ(a, b);
-    printf("res=%d a=%d b=%d\n", res, a, b);
-#endif
+    // TODO: add mechanism to actually expect a failing assertion and not have the test fail
     ASSERT_EQ(0, EXPECT_EQ(42+1*1, dummy()));
     ASSERT_EQ(0, EXPECT_EQ(42, 666, "This test is expected to fail"));
-    //ASSERT_EQ(42+1*1, dummy());
+#endif
+    ASSERT_EQ(42+1*0, dummy());
 }
 
 TESTCASE(Test1)
