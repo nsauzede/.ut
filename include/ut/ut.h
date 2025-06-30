@@ -156,6 +156,7 @@ int ut_cap_bytes(struct UT_cap_s *cap) {
 void ut_cap_flush(struct UT_cap_s *cap) {
     while (1) {
         char buf[1024];
+        if (ut_cap_bytes(cap) <= 0)break;
         ut_ssize_t count = ut_read(cap->std_pipe[0], buf, sizeof(buf) - 1);
         if (count <= 0)break;
         buf[count] = 0;
