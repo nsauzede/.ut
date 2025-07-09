@@ -535,7 +535,8 @@ int ut_assert_neq_(const char *file, int line, const char *func, const char *va_
     void*: ut_assert_eq_ptr, \
     const char*: ut_assert_eq_str)(__FILE__,__LINE__,__func__,va_args,lhs, rhs)
 #define ASSERT_NEQ_(va_args, lhs, rhs) _Generic((lhs), \
-    void*: ut_assert_neq_ptr)(__FILE__,__LINE__,__func__,va_args,lhs, rhs)
+    void*: ut_assert_neq_ptr, \
+    int: ut_assert_neq_ptr)(__FILE__,__LINE__,__func__,va_args,(void *)(intptr_t)lhs, (void *)(intptr_t)rhs)
 #endif
 #define ASSERT_EQ(...) ASSERT_EQ_(#__VA_ARGS__, __VA_ARGS__)
 //#define EXPECT_EQ(...) ASSERT_EQ(__VA_ARGS__)
