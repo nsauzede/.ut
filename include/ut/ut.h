@@ -14,6 +14,9 @@
 #include <time.h>
 #include <malloc.h>
 #include <setjmp.h>
+#ifdef __cplusplus
+#include <string>
+#endif
 
 #ifdef _WIN32
 #include <direct.h>     // _getcwd
@@ -533,6 +536,8 @@ int ut_assert_eq_str(const char *file, int line, const char *func, const char *e
 #define ASSERT_EQ_(va_args, lhs, rhs) ut_assert_eq_(__FILE__,__LINE__,__func__,va_args, lhs, rhs)
 #define ASSERT_NEQ_(va_args, lhs, rhs) ut_assert_neq_(__FILE__,__LINE__,__func__,va_args, lhs, rhs)
 int ut_assert_eq_(const char *file, int line, const char *func, const char *va_args, int lhs, int rhs) { return ut_assert_eq_int(file, line, func, va_args, lhs, rhs); }
+int ut_assert_eq_(const char *file, int line, const char *func, const char *va_args, const char *lhs, std::string rhs) { return ut_assert_eq_str(file, line, func, va_args, lhs, rhs.c_str()); }
+int ut_assert_eq_(const char *file, int line, const char *func, const char *va_args, std::string lhs, std::string rhs) { return ut_assert_eq_str(file, line, func, va_args, lhs.c_str(), rhs.c_str()); }
 int ut_assert_eq_(const char *file, int line, const char *func, const char *va_args, const char* lhs, const char* rhs) { return ut_assert_eq_str(file, line, func, va_args, lhs, rhs); }
 int ut_assert_eq_(const char *file, int line, const char *func, const char *va_args, void* lhs, void* rhs) { return ut_assert_eq_ptr(file, line, func, va_args, lhs, rhs); }
 int ut_assert_neq_(const char *file, int line, const char *func, const char *va_args, void* lhs, void* rhs) { return ut_assert_neq_ptr(file, line, func, va_args, lhs, rhs); }
