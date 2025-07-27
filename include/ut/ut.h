@@ -508,11 +508,20 @@ int ut_assert_eq_int(const char *file, int line, const char *func, const char *e
     return expr;
 }
 int ut_assert_eq_str(const char *file, int line, const char *func, const char *expr_str, const char* lhs, const char* rhs) {
-    int expr = !strcmp(lhs, rhs);
+    int expr;
+    if (lhs && rhs) {
+        expr = !strcmp(lhs, rhs);
+    } else {
+        expr = !lhs && !rhs;
+    }
     if (!expr) {
         fprintf(stderr, "%s:%d: AssertionError (String)\n", file, line);
         fprintf(stderr, ">\tASSERT_EQ(%s)\n", expr_str);
-        fprintf(stderr, "E\tASSERT_EQ(\"%s\", \"%s\")\n", lhs, rhs);
+        fprintf(stderr, "E\tASSERT_EQ(");
+        fprintf(stderr, lhs ? "\"%s\"" : "%s", lhs ? lhs : "(null)");
+        fprintf(stderr, ", ");
+        fprintf(stderr, rhs ? "\"%s\"" : "%s", rhs ? rhs : "(null)");
+        fprintf(stderr, ")\n");
         ut_assert(file, line, func, expr_str, expr);
     }
     return expr;
