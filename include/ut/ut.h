@@ -542,6 +542,7 @@ int ut_assert_neq_(const char *file, int line, const char *func, const char *va_
     unsigned short: ut_assert_eq_int, \
     unsigned char: ut_assert_eq_int, \
     void*: ut_assert_eq_ptr, \
+    char*: ut_assert_eq_str, \
     const char*: ut_assert_eq_str)(__FILE__,__LINE__,__func__,va_args,lhs, rhs)
 #define ASSERT_NEQ_(va_args, lhs, rhs) _Generic((lhs), \
     void*: ut_assert_neq_ptr, \
