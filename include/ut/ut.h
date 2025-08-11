@@ -500,12 +500,12 @@ int ut_assert_neq_ptr(const char *file, int line, const char *func, const char *
     }
     return expr;
 }
-int ut_assert_eq_int(const char *file, int line, const char *func, const char *expr_str, int lhs, int rhs) {
+int ut_assert_eq_long(const char *file, int line, const char *func, const char *expr_str, long lhs, long rhs) {
     int expr = lhs == rhs;
     if (!expr) {
         fprintf(stderr, "%s:%d: AssertionError (Integer)\n", file, line);
         fprintf(stderr, ">\tASSERT_EQ(%s)\n", expr_str);
-        fprintf(stderr, "E\tASSERT_EQ(%d, %d)\n", lhs, rhs);
+        fprintf(stderr, "E\tASSERT_EQ(%ld, %ld)\n", lhs, rhs);
         ut_assert(file, line, func, expr_str, expr);
     }
     return expr;
@@ -535,7 +535,8 @@ int ut_assert_eq_str(const char *file, int line, const char *func, const char *e
 #ifdef __cplusplus
 #define ASSERT_EQ_(va_args, lhs, rhs) ut_assert_eq_(__FILE__,__LINE__,__func__,va_args, lhs, rhs)
 #define ASSERT_NEQ_(va_args, lhs, rhs) ut_assert_neq_(__FILE__,__LINE__,__func__,va_args, lhs, rhs)
-int ut_assert_eq_(const char *file, int line, const char *func, const char *va_args, int lhs, int rhs) { return ut_assert_eq_int(file, line, func, va_args, lhs, rhs); }
+int ut_assert_eq_(const char *file, int line, const char *func, const char *va_args, long lhs, long rhs) { return ut_assert_eq_long(file, line, func, va_args, lhs, rhs); }
+int ut_assert_eq_(const char *file, int line, const char *func, const char *va_args, int lhs, int rhs) { return ut_assert_eq_long(file, line, func, va_args, lhs, rhs); }
 int ut_assert_eq_(const char *file, int line, const char *func, const char *va_args, const char *lhs, std::string rhs) { return ut_assert_eq_str(file, line, func, va_args, lhs, rhs.c_str()); }
 int ut_assert_eq_(const char *file, int line, const char *func, const char *va_args, std::string lhs, std::string rhs) { return ut_assert_eq_str(file, line, func, va_args, lhs.c_str(), rhs.c_str()); }
 int ut_assert_eq_(const char *file, int line, const char *func, const char *va_args, const char* lhs, const char* rhs) { return ut_assert_eq_str(file, line, func, va_args, lhs, rhs); }
@@ -543,9 +544,10 @@ int ut_assert_eq_(const char *file, int line, const char *func, const char *va_a
 int ut_assert_neq_(const char *file, int line, const char *func, const char *va_args, void* lhs, void* rhs) { return ut_assert_neq_ptr(file, line, func, va_args, lhs, rhs); }
 #else
 #define ASSERT_EQ_(va_args, lhs, rhs) _Generic((lhs), \
-    int: ut_assert_eq_int, \
-    unsigned short: ut_assert_eq_int, \
-    unsigned char: ut_assert_eq_int, \
+    long: ut_assert_eq_long, \
+    int: ut_assert_eq_long, \
+    unsigned short: ut_assert_eq_long, \
+    unsigned char: ut_assert_eq_long, \
     void*: ut_assert_eq_ptr, \
     char*: ut_assert_eq_str, \
     const char*: ut_assert_eq_str)(__FILE__,__LINE__,__func__,va_args,lhs, rhs)
