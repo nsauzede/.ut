@@ -598,6 +598,10 @@ int expect_eq_long(const char *file, int line, const char *func, const char *exp
     const char *macro = "EXPECT_EQ";
     return expect_fmt(macro, file, line, func, expr_str, a == b, "\n>       %s(%s)\nE       %s(%ld, %ld)\n", macro, expr_str, macro, a, b);
 }
+int expect_eq_double(const char *file, int line, const char *func, const char *expr_str, double a, double b) {
+    const char *macro = "EXPECT_EQ";
+    return expect_fmt(macro, file, line, func, expr_str, a == b, "\n>       %s(%s)\nE       %s(%.1f, %.1f)\n", macro, expr_str, macro, a, b);
+}
 int expect_eq_str(const char *file, int line, const char *func, const char *expr_str, const char *a, const char *b) {
     const char *macro = "EXPECT_EQ";
     return expect_fmt(macro, file, line, func, expr_str, !strcmp(a, b), "\n>       %s(%s)\nE       %s(\"%s\", \"%s\")\n", macro, expr_str, macro, a, b);
@@ -606,11 +610,13 @@ int expect_eq_str(const char *file, int line, const char *func, const char *expr
 #ifdef __cplusplus
 int expect_eq(const char *file, int line, const char *func, const char *expr_str, long a, long b) { return expect_eq_long(file, line, func, expr_str, a, b); }
 int expect_eq(const char *file, int line, const char *func, const char *expr_str, int a, int b) { return expect_eq_long(file, line, func, expr_str, a, b); }
+int expect_eq(const char *file, int line, const char *func, const char *expr_str, double a, double b) { return expect_eq_double(file, line, func, expr_str, a, b); }
 int expect_eq(const char *file, int line, const char *func, const char *expr_str, const char *a, const char *b)  { return expect_eq_str(file, line, func, expr_str, a, b); }
 #else
 #define expect_eq(fi,l,fn,va_args, lhs, rhs) _Generic((lhs), \
     long: expect_eq_long, \
     int: expect_eq_long, \
+    double: expect_eq_double, \
     char*: expect_eq_str, \
     const char*: expect_eq_str)(fi,l,fn,va_args,lhs, rhs)
 #endif

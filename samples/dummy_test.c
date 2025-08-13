@@ -18,6 +18,9 @@ TESTMETHOD(test_dummy) {
     const char *str1 = "333";
     const char *str2 = "333";
     EXPECT_EQ(str1, str2);
+    double flt1 = 1.1 + 1.2;
+    double flt2 = 1.05 + 1.25;
+    EXPECT_EQ(flt1, flt2);
     ASSERT_EQ(42+1*0, dummy());
 }
 
