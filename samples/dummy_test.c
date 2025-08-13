@@ -14,6 +14,10 @@ TESTMETHOD(test_dummy) {
     ASSERT_EQ(0, EXPECT_EQ(42+1*1, dummy()));
     ASSERT_EQ(0, EXPECT_EQ(42, 666, "This test is expected to fail"));
 #endif
+    EXPECT_EQ(333*2, 666);
+    const char *str1 = "333";
+    const char *str2 = "333";
+    EXPECT_EQ(str1, str2);
     ASSERT_EQ(42+1*0, dummy());
 }
 

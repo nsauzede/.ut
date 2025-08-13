@@ -594,10 +594,26 @@ int expect(const char *file, int line, const char *func, const char *expr_str, i
     const char *macro = "EXPECT";
     return expect_fmt(macro, file, line, func, expr_str, expr, "\n>       %s(%s)\nE       %s(%d)\n", macro, expr_str, macro, expr);
 }
-int expect_eq(const char *file, int line, const char *func, const char *expr_str, int a, int b) {
+int expect_eq_long(const char *file, int line, const char *func, const char *expr_str, long a, long b) {
     const char *macro = "EXPECT_EQ";
-    return expect_fmt(macro, file, line, func, expr_str, a == b, "\n>       %s(%s)\nE       %s(%d, %d)\n", macro, expr_str, macro, a, b);
+    return expect_fmt(macro, file, line, func, expr_str, a == b, "\n>       %s(%s)\nE       %s(%ld, %ld)\n", macro, expr_str, macro, a, b);
 }
+int expect_eq_str(const char *file, int line, const char *func, const char *expr_str, const char *a, const char *b) {
+    const char *macro = "EXPECT_EQ";
+    return expect_fmt(macro, file, line, func, expr_str, !strcmp(a, b), "\n>       %s(%s)\nE       %s(\"%s\", \"%s\")\n", macro, expr_str, macro, a, b);
+}
+//int ut_assert_eq_(const char *file, int line, const char *func, const char *va_args, const char* lhs, const char* rhs);
+#ifdef __cplusplus
+int expect_eq(const char *file, int line, const char *func, const char *expr_str, long a, long b) { return expect_eq_long(file, line, func, expr_str, a, b); }
+int expect_eq(const char *file, int line, const char *func, const char *expr_str, int a, int b) { return expect_eq_long(file, line, func, expr_str, a, b); }
+int expect_eq(const char *file, int line, const char *func, const char *expr_str, const char *a, const char *b)  { return expect_eq_str(file, line, func, expr_str, a, b); }
+#else
+#define expect_eq(fi,l,fn,va_args, lhs, rhs) _Generic((lhs), \
+    long: expect_eq_long, \
+    int: expect_eq_long, \
+    char*: expect_eq_str, \
+    const char*: expect_eq_str)(fi,l,fn,va_args,lhs, rhs)
+#endif
 
 #define PP_NARG(...) PP_NARG_(__VA_ARGS__, PP_RSEQ_N())
 #define PP_NARG_(...) PP_ARG_N(__VA_ARGS__)
