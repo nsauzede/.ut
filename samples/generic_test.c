@@ -25,5 +25,5 @@ TESTCASE(TestGeneric)
     TESTMETHOD(test_assert_eq) {
         int x = 18;
         int y = 36;
-        ASSERT(ASSERT_EQ(x * 2, y));
+        ASSERT_EQ(x * 2, y);
     }
