@@ -14,6 +14,9 @@
 #include <time.h>
 #include <malloc.h>
 #include <setjmp.h>
+#ifdef __cplusplus
+#include <string>
+#endif
 
 #ifdef _WIN32
 #include <direct.h>     // _getcwd
@@ -25,11 +28,13 @@
 #include <sys/ioctl.h>  // ioctl
 #endif
 
-#define UT_VERSION "0.0.13"
+#define UT_VERSION "0.0.14"
 
 #define CTOR __attribute((constructor))
 #define TRY() (setjmp(UT.jmpbuf) == 0)
-#define THROW() do{longjmp(UT.jmpbuf, 1);}while(0)
+#define RETRY() do{if(UT.xthrow){if(setjmp(UT.jmpbuf) == 1){__asm__ volatile("int $3");exit(2);}}}while(0)
+//#define THROW() do{if (UT.xthrow){__asm__ volatile("int $3");exit(1);};longjmp(UT.jmpbuf, 1);}while(0)
+#define THROW() longjmp(UT.jmpbuf, 1)
 #define RED "\x1b[0;31m"
 #define BRED "\x1b[1;31m"
 #define GRN "\x1b[0;32m"
@@ -49,7 +54,7 @@
 #define DECLT(met) static struct UT_s UMET(met##_s)
 #define DECLM(met) static void UMET(met)()
 #define TESTMETHOD(met) DECLM(met); DECLT(met); DEFCTOR(met) DECLM(met)
-#define ASSERT(expr) do{if(!ut_assert(__FILE__,__LINE__,__func__,#expr,expr))return;}while(0)
+#define ASSERT(expr) do{RETRY();if(!ut_assert(__FILE__,__LINE__,__func__,#expr,expr))return;}while(0)
 #define STRINGIFY_(x) #x
 #define STRINGIFY(x) STRINGIFY_(x)
 
@@ -110,9 +115,11 @@ static struct UT_s {
     const char *cls, *met, *umet;
     const char *file, *func, *expr_str;
     int line, expr;
+    const char *macro;
     void (*ptr)();
     jmp_buf jmpbuf;
     int disabled;
+    int xthrow;
     struct UT_cap_s cap_stdout, cap_stderr;
     struct UT_s *next;
 } UT, *ut_last, *ut_curr;
@@ -143,6 +150,7 @@ void ut_cap_stop(struct UT_cap_s *cap) {
     if (cap->original_fd != -1) {
         ut_dup2(cap->original_fd, cap->fileno);
         ut_close(cap->original_fd);
+        cap->original_fd = -1;
     }
 }
 int ut_cap_bytes(struct UT_cap_s *cap) {
@@ -155,6 +163,7 @@ int ut_cap_bytes(struct UT_cap_s *cap) {
 void ut_cap_flush(struct UT_cap_s *cap) {
     while (1) {
         char buf[1024];
+        if (ut_cap_bytes(cap) <= 0)break;
         ut_ssize_t count = ut_read(cap->std_pipe[0], buf, sizeof(buf) - 1);
         if (count <= 0)break;
         buf[count] = 0;
@@ -176,6 +185,10 @@ void ut_add(const char *file, const char *met, const char *umet, void (*ptr)(), 
 }
 int ut_assert(const char *file, int line, const char *func, const char *expr_str, int expr) {
     if (!expr) {
+        if (UT.xthrow) {
+            ut_cap_stop(&ut_curr->cap_stdout);
+            ut_cap_stop(&ut_curr->cap_stderr);
+        }
         ut_curr->file = file;
         ut_curr->line = line;
         ut_curr->func = !strcmp(func, ut_curr->umet) ? ut_curr->met : func;
@@ -247,12 +260,14 @@ void ut_help(const char *prog) {
     printf("Options:\n");
     printf("    --help          This help\n");
     printf("    -s              Do not capture tests stdout/stderr\n");
+    printf("    -x              Make failed EXPECT throw exception\n");
     printf("    -v              Increase verbosity\n");
     printf("    -q              Decrease verbosity\n");
 }
 int ut_main_(int argc, char *argv[]) {
     int verbosity = 2;
     int nocap = 0;
+    int xthrow = 0;
     int arg = 1;
 
     while (arg < argc) {
@@ -265,6 +280,8 @@ int ut_main_(int argc, char *argv[]) {
             verbosity--;
         } else if (!strcmp(argv[arg], "-s")) {
             nocap = 1;
+        } else if (!strcmp(argv[arg], "-x")) {
+            xthrow = 1;
         }
         arg++;
     }
@@ -275,6 +292,7 @@ int ut_main_(int argc, char *argv[]) {
     setvbuf(stderr, NULL, _IONBF, 0);
     int ntests = 0;
     struct UT_s *ut = UT.next;
+    UT.xthrow = xthrow;
     while (ut) {
         ntests++;
         ut = ut->next;
@@ -430,7 +448,8 @@ int ut_main_(int argc, char *argv[]) {
                 ut_print_centered(width, BRED, '_', "%s", ut->met);
             }
             printf(BRED "%s" NRM":%d: in %s\n", ut->file, ut->line, ut->func);
-            printf("\t" BLUE "ASSERT" NRM "(%s)\n", ut->expr_str);
+            const char *macro = ut->macro ? ut->macro : "ASSERT";
+            printf("\t" BLUE "%s" NRM "(%s)\n", macro, ut->expr_str);
             if (ut_cap_bytes(&ut->cap_stdout)) {
                 ut_print_centered(width, NRM, '-', "Captured stdout call");
                 ut_cap_flush(&ut->cap_stdout);
@@ -450,10 +469,11 @@ int ut_main_(int argc, char *argv[]) {
             continue;
         }
         if (!ut->expr) {
+            const char *macro = ut->macro ? ut->macro : "ASSERT";
             if (ut->cls) {
-                printf(RED "FAILED" NRM " %s:%d::" BWHITE "%s::%s" NRM " - ASSERT(%s)\n", ut->file, ut->line, ut->cls, ut->met, ut->expr_str);
+                printf(RED "FAILED" NRM " %s:%d::" BWHITE "%s::%s" NRM " - %s(%s)\n", ut->file, ut->line, ut->cls, ut->met, macro, ut->expr_str);
             } else {
-                printf(RED "FAILED" NRM " %s:%d::" BWHITE "%s" NRM " - ASSERT(%s)\n", ut->file, ut->line, ut->met, ut->expr_str);
+                printf(RED "FAILED" NRM " %s:%d::" BWHITE "%s" NRM " - %s(%s)\n", ut->file, ut->line, ut->met, macro, ut->expr_str);
             }
         }
         ut = ut->next;
@@ -476,6 +496,10 @@ int ut_main_(int argc, char *argv[]) {
 int ut_assert_eq_ptr(const char *file, int line, const char *func, const char *expr_str, void *lhs, void *rhs) {
     int expr = lhs == rhs;
     if (!expr) {
+        if (UT.xthrow) {
+            ut_cap_stop(&ut_curr->cap_stdout);
+            ut_cap_stop(&ut_curr->cap_stderr);
+        }
         fprintf(stderr, "%s:%d: AssertionError (Pointer)\n", file, line);
         fprintf(stderr, ">\tASSERT_EQ(%s)\n", expr_str);
         fprintf(stderr, "E\tASSERT_EQ(%p, %p)\n", lhs, rhs);
@@ -486,6 +510,10 @@ int ut_assert_eq_ptr(const char *file, int line, const char *func, const char *e
 int ut_assert_neq_ptr(const char *file, int line, const char *func, const char *expr_str, void *lhs, void *rhs) {
     int expr = lhs != rhs;
     if (!expr) {
+        if (UT.xthrow) {
+            ut_cap_stop(&ut_curr->cap_stdout);
+            ut_cap_stop(&ut_curr->cap_stderr);
+        }
         fprintf(stderr, "%s:%d: AssertionError (Pointer)\n", file, line);
         fprintf(stderr, ">\tASSERT_NEQ(%s)\n", expr_str);
         fprintf(stderr, "E\tASSERT_NEQ(%p, %p)\n", lhs, rhs);
@@ -493,49 +521,161 @@ int ut_assert_neq_ptr(const char *file, int line, const char *func, const char *
     }
     return expr;
 }
-int ut_assert_eq_int(const char *file, int line, const char *func, const char *expr_str, int lhs, int rhs) {
+int ut_assert_eq_long(const char *file, int line, const char *func, const char *expr_str, long lhs, long rhs) {
     int expr = lhs == rhs;
     if (!expr) {
+        if (UT.xthrow) {
+            ut_cap_stop(&ut_curr->cap_stdout);
+            ut_cap_stop(&ut_curr->cap_stderr);
+        }
         fprintf(stderr, "%s:%d: AssertionError (Integer)\n", file, line);
         fprintf(stderr, ">\tASSERT_EQ(%s)\n", expr_str);
-        fprintf(stderr, "E\tASSERT_EQ(%d, %d)\n", lhs, rhs);
+        fprintf(stderr, "E\tASSERT_EQ(%ld, %ld)\n", lhs, rhs);
         ut_assert(file, line, func, expr_str, expr);
     }
     return expr;
 }
 int ut_assert_eq_str(const char *file, int line, const char *func, const char *expr_str, const char* lhs, const char* rhs) {
-    int expr = !strcmp(lhs, rhs);
+    int expr;
+    if (lhs && rhs) {
+        expr = !strcmp(lhs, rhs);
+    } else {
+        expr = !lhs && !rhs;
+    }
     if (!expr) {
+        if (UT.xthrow) {
+            ut_cap_stop(&ut_curr->cap_stdout);
+            ut_cap_stop(&ut_curr->cap_stderr);
+        }
         fprintf(stderr, "%s:%d: AssertionError (String)\n", file, line);
         fprintf(stderr, ">\tASSERT_EQ(%s)\n", expr_str);
-        fprintf(stderr, "E\tASSERT_EQ(\"%s\", \"%s\")\n", lhs, rhs);
+        fprintf(stderr, "E\tASSERT_EQ(");
+        fprintf(stderr, lhs ? "\"%s\"" : "%s", lhs ? lhs : "(null)");
+        fprintf(stderr, ", ");
+        fprintf(stderr, rhs ? "\"%s\"" : "%s", rhs ? rhs : "(null)");
+        fprintf(stderr, ")\n");
         ut_assert(file, line, func, expr_str, expr);
     }
     return expr;
 }
-#ifndef UT_NO_MAIN
-int main(int argc, char *argv[]) { return ut_main_(argc, argv); }
-#define main ut_main
-#endif
 #ifdef __cplusplus
 }
 #endif
 #ifdef __cplusplus
-#define ASSERT_EQ_(va_args, lhs, rhs) ut_assert_eq_(__FILE__,__LINE__,__func__,va_args, lhs, rhs)
-#define ASSERT_NEQ_(va_args, lhs, rhs) ut_assert_neq_(__FILE__,__LINE__,__func__,va_args, lhs, rhs)
-int ut_assert_eq_(const char *file, int line, const char *func, const char *va_args, int lhs, int rhs) { return ut_assert_eq_int(file, line, func, va_args, lhs, rhs); }
+#define ASSERT_EQ_(va_args, lhs, rhs) do{RETRY();ut_assert_eq_(__FILE__,__LINE__,__func__,va_args, lhs, rhs);}while(0)
+#define ASSERT_NEQ_(va_args, lhs, rhs) do{RETRY();ut_assert_neq_(__FILE__,__LINE__,__func__,va_args, lhs, rhs);}while(0)
+int ut_assert_eq_(const char *file, int line, const char *func, const char *va_args, long lhs, long rhs) { return ut_assert_eq_long(file, line, func, va_args, lhs, rhs); }
+int ut_assert_eq_(const char *file, int line, const char *func, const char *va_args, int lhs, int rhs) { return ut_assert_eq_long(file, line, func, va_args, lhs, rhs); }
+int ut_assert_eq_(const char *file, int line, const char *func, const char *va_args, const char *lhs, std::string rhs) { return ut_assert_eq_str(file, line, func, va_args, lhs, rhs.c_str()); }
+int ut_assert_eq_(const char *file, int line, const char *func, const char *va_args, std::string lhs, std::string rhs) { return ut_assert_eq_str(file, line, func, va_args, lhs.c_str(), rhs.c_str()); }
 int ut_assert_eq_(const char *file, int line, const char *func, const char *va_args, const char* lhs, const char* rhs) { return ut_assert_eq_str(file, line, func, va_args, lhs, rhs); }
 int ut_assert_eq_(const char *file, int line, const char *func, const char *va_args, void* lhs, void* rhs) { return ut_assert_eq_ptr(file, line, func, va_args, lhs, rhs); }
 int ut_assert_neq_(const char *file, int line, const char *func, const char *va_args, void* lhs, void* rhs) { return ut_assert_neq_ptr(file, line, func, va_args, lhs, rhs); }
 #else
-#define ASSERT_EQ_(va_args, lhs, rhs) _Generic((lhs), \
-    int: ut_assert_eq_int, \
+#define ASSERT_EQ_(va_args, lhs, rhs) do{RETRY();_Generic((lhs), \
+    long: ut_assert_eq_long, \
+    int: ut_assert_eq_long, \
+    unsigned short: ut_assert_eq_long, \
+    unsigned char: ut_assert_eq_long, \
     void*: ut_assert_eq_ptr, \
-    const char*: ut_assert_eq_str)(__FILE__,__LINE__,__func__,va_args,lhs, rhs)
-#define ASSERT_NEQ_(va_args, lhs, rhs) _Generic((lhs), \
-    void*: ut_assert_neq_ptr)(__FILE__,__LINE__,__func__,va_args,lhs, rhs)
+    char*: ut_assert_eq_str, \
+    const char*: ut_assert_eq_str)(__FILE__,__LINE__,__func__,va_args,lhs, rhs);}while(0)
+#define ASSERT_NEQ_(va_args, lhs, rhs) do{RETRY();_Generic((lhs), \
+    void*: ut_assert_neq_ptr, \
+    int: ut_assert_neq_ptr)(__FILE__,__LINE__,__func__,va_args,(void *)(intptr_t)lhs, (void *)(intptr_t)rhs);}while(0)
 #endif
 #define ASSERT_EQ(...) ASSERT_EQ_(#__VA_ARGS__, __VA_ARGS__)
-#define EXPECT_EQ(...) ASSERT_EQ(__VA_ARGS__)
+//#define EXPECT_EQ(...) ASSERT_EQ(__VA_ARGS__)
 #define ASSERT_NEQ(...) ASSERT_NEQ_(#__VA_ARGS__, __VA_ARGS__)
+
+int expect_fmt(const char *macro, const char *file, int line, const char *func, const char *expr_str, int expr, const char *fmt, ...) {
+    if (!expr) {
+        if (UT.xthrow) {
+            ut_cap_stop(&ut_curr->cap_stdout);
+            ut_cap_stop(&ut_curr->cap_stderr);
+        }
+        va_list args;
+        va_start(args, fmt);
+        printf("%s:%d:%s:%s: ", file, line, func, macro);
+        vprintf(fmt, args);
+        printf("\n");
+        va_end(args);
+
+        ut_curr->file = file;
+        ut_curr->line = line;
+        ut_curr->func = !strcmp(func, ut_curr->umet) ? ut_curr->met : func;
+        ut_curr->expr_str = expr_str;
+        ut_curr->expr = expr;
+        ut_curr->macro = macro;
+        if (UT.xthrow) {
+            THROW();
+        }
+    }
+    return expr;
+}
+int expect(const char *file, int line, const char *func, const char *expr_str, int expr) {
+    const char *macro = "EXPECT";
+    return expect_fmt(macro, file, line, func, expr_str, expr, "\n>       %s(%s)\nE       %s(%d)\n", macro, expr_str, macro, expr);
+}
+int expect_eq_long(const char *file, int line, const char *func, const char *expr_str, long a, long b) {
+    const char *macro = "EXPECT_EQ";
+    return expect_fmt(macro, file, line, func, expr_str, a == b, "\n>       %s(%s)\nE       %s(%ld, %ld)\n", macro, expr_str, macro, a, b);
+}
+int expect_eq_double(const char *file, int line, const char *func, const char *expr_str, double a, double b) {
+    const char *macro = "EXPECT_EQ";
+    return expect_fmt(macro, file, line, func, expr_str, a == b, "\n>       %s(%s)\nE       %s(%.1f, %.1f)\n", macro, expr_str, macro, a, b);
+}
+int expect_eq_ptr(const char *file, int line, const char *func, const char *expr_str, void *a, void *b) {
+    const char *macro = "EXPECT_EQ";
+    return expect_fmt(macro, file, line, func, expr_str, a == b, "\n>       %s(%s)\nE       %s(%p, %p)\n", macro, expr_str, macro, a, b);
+}
+int expect_eq_str(const char *file, int line, const char *func, const char *expr_str, const char *a, const char *b) {
+    const char *macro = "EXPECT_EQ";
+    return expect_fmt(macro, file, line, func, expr_str, !strcmp(a, b), "\n>       %s(%s)\nE       %s(\"%s\", \"%s\")\n", macro, expr_str, macro, a, b);
+}
+//int ut_assert_eq_(const char *file, int line, const char *func, const char *va_args, const char* lhs, const char* rhs);
+#ifdef __cplusplus
+int expect_eq(const char *file, int line, const char *func, const char *expr_str, long a, long b) { return expect_eq_long(file, line, func, expr_str, a, b); }
+int expect_eq(const char *file, int line, const char *func, const char *expr_str, int a, int b) { return expect_eq_long(file, line, func, expr_str, a, b); }
+int expect_eq(const char *file, int line, const char *func, const char *expr_str, double a, double b) { return expect_eq_double(file, line, func, expr_str, a, b); }
+int expect_eq(const char *file, int line, const char *func, const char *expr_str, void *a, void *b)  { return expect_eq_ptr(file, line, func, expr_str, a, b); }
+int expect_eq(const char *file, int line, const char *func, const char *expr_str, const char *a, const char *b)  { return expect_eq_str(file, line, func, expr_str, a, b); }
+#else
+#define expect_eq(fi,l,fn,va_args, lhs, rhs) _Generic((lhs), \
+    long: expect_eq_long, \
+    int: expect_eq_long, \
+    double: expect_eq_double, \
+    void*: expect_eq_ptr, \
+    char*: expect_eq_str, \
+    const char*: expect_eq_str)(fi,l,fn,va_args,lhs, rhs)
+#endif
+
+#define PP_NARG(...) PP_NARG_(__VA_ARGS__, PP_RSEQ_N())
+#define PP_NARG_(...) PP_ARG_N(__VA_ARGS__)
+#define PP_ARG_N(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,N,...) N
+#define PP_RSEQ_N() 10,9,8,7,6,5,4,3,2,1,0
+#define CONCATENATE(arg1, arg2) CONCATENATE1(arg1, arg2)
+#define CONCATENATE1(arg1, arg2) arg1##arg2
+
+#define EXPECT_EQ(...) CONCATENATE(EXPECT_EQ_, PP_NARG(__VA_ARGS__))(__FILE__,__LINE__,__func__,#__VA_ARGS__, __VA_ARGS__)
+#define EXPECT_EQ_2_(fi,l,fn,ex, ...) do{RETRY();expect_eq(fi,l,fn,#__VA_ARGS__, __VA_ARGS__);}while(0)
+#define EXPECT_EQ_2(fi,l,fn,ex, a, b) EXPECT_EQ_2_(fi,l,fn,ex, a, b)
+#define EXPECT_EQ_3(fi,l,fn,ex, a, b, fmt) do{RETRY();expect_fmt("EXPECT_EQ",fi,l,fn,ex, (a) == (b), (fmt));}while(0)
+#define EXPECT_EQ_4(fi,l,fn,ex, a, b, fmt, a1) do{RETRY();expect_fmt("EXPECT_EQ",fi,l,fn,ex, (a) == (b), (fmt), (a1));}while(0)
+#define EXPECT_EQ_5(fi,l,fn,ex, a, b, fmt, a1, a2) do{RETRY();expect_fmt("EXPECT_EQ",fi,l,fn,ex, (a) == (b), (fmt), (a1), (a2));}while(0)
+#define EXPECT_EQ_6(fi,l,fn,ex, a, b, fmt, a1, a2, a3) do{RETRY();expect_fmt("EXPECT_EQ",fi,l,fn,ex, (a) == (b), (fmt), (a1), (a2), (a3));}while(0)
+
+#define EXPECT(...) CONCATENATE(EXPECT_, PP_NARG(__VA_ARGS__))(__FILE__,__LINE__,__func__,#__VA_ARGS__, __VA_ARGS__)
+#define EXPECT_1_(fi,l,fn,ex, ...) do{RETRY();expect(fi,l,fn,#__VA_ARGS__, __VA_ARGS__);}while(0)
+#define EXPECT_1(fi,l,fn,ex, e) EXPECT_1_(fi,l,fn,ex, e)
+#define EXPECT_2(fi,l,fn,ex, e, fmt) do{RETRY();expect_fmt("EXPECT",fi,l,fn,ex, (e), (fmt));}while(0)
+#define EXPECT_3(fi,l,fn,ex, e, fmt, a1) do{RETRY();expect_fmt("EXPECT",fi,l,fn,ex, (e), (fmt), (a1));}while(0)
+#define EXPECT_4(fi,l,fn,ex, e, fmt, a1, a2) do{RETRY();expect_fmt("EXPECT",fi,l,fn,ex, (e), (fmt), (a1), (a2));}while(0)
+#define EXPECT_5(fi,l,fn,ex, e, fmt, a1, a2, a3) do{RETRY();expect_fmt("EXPECT",fi,l,fn,ex, (e), (fmt), (a1), (a2), (a3));}while(0)
+#define EXPECT_6(fi,l,fn,ex, e, fmt, a1, a2, a3, a4) do{RETRY();expect_fmt("EXPECT",fi,l,fn,ex, (e), (fmt), (a1), (a2), (a3), (a4));}while(0)
+
+#ifndef UT_NO_MAIN
+int main(int argc, char *argv[]) { return ut_main_(argc, argv); }
+#define main ut_main
+#endif
 #endif/*UT_H__*/

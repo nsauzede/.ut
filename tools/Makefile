@@ -9,12 +9,17 @@ UTPATH:=$(shell dirname `dirname $(CURRENT_MAKEFILE)`)
 UTSCRIPTS:=$(UTPATH)/tools
 UT_DIR?=.
 
+ORIG_UT_XTHROW:=$(UT_XTHROW)
 -include ut*.mk
 ifneq (`realpath .`, `realpath $(UT_DIR)`)
 -include $(UT_DIR)/ut*.mk
 endif
+ifneq (x$(ORIG_UT_XTHROW),x)
+UT_XTHROW:=$(ORIG_UT_XTHROW)
+endif
 
 MKDIR:=mkdir
+GDB?=gdb
 VALGRIND?=valgrind
 ifneq (0, $(shell command -v $(VALGRIND) > /dev/null 2>&1 ; echo $$?))
 VALGRIND:=
@@ -54,6 +59,11 @@ endif
 CLANGXX?=clang++
 ifneq (0, $(shell command -v $(CLANGXX) > /dev/null 2>&1 ; echo $$?))
 CLANGXX:=
+endif
+
+IVERILOG?=iverilog
+ifneq (0, $(shell command -v $(IVERILOG) > /dev/null 2>&1 ; echo $$?))
+IVERILOG:=
 endif
 
 ifdef TCC
@@ -205,11 +215,20 @@ PYTO+=-v
 endif
 endif
 
+UTO:=
 ifeq ("x$(UT_VERBOSE)", "x1")
-UTO:=-v
+UTO+=-v
 GTO:=
 else
 GTO:=--gtest_brief=1
+endif
+ifeq ("x$(UT_NOCAP)", "x1")
+UTO+=-s
+endif
+ifeq ("x$(UT_XTHROW)", "x1")
+UT_SLOW:=1
+UT_FAST:=0
+UTO+=-x
 endif
 
 ifdef PYTEST
@@ -240,7 +259,7 @@ ifneq ("x$(UT_FAST)","x1")
 PASSED+=$(PASSED_SLOW)
 endif
 
-all: $(PASSED)
+all: $(UT_CUSTOM_ALL) $(PASSED)
 
 dry-run: $(PASSED)
 
@@ -295,14 +314,14 @@ $(UT_3P)/.keep: $(UT_UT)
 #	touch $@
 #endif
 
-$(UT_CACHE)/%.c.d: $(UT_CACHE)/.keep %.c
+$(UT_CACHE)/%.c.d: $(UT_CACHE)/.keep %.c | $(UT_CUSTOM_DEPS)
 	$(AT)$(MKDIR) -p $(@D) && \
 	(gcc -MM $(CFLAGS) $*.c > $@.orig 2>&1 \
 	    || (cat $@.orig | $(CCFILTER) ; $(RM) $@.orig ; false) \
 	    && (cat $@.orig | $(UTSCRIPTS)/mkdep.py $(PWD) > $@ ; \
 	        $(RM) $@.orig))
 
-$(UT_CACHE)/%.cpp.d: $(UT_CACHE)/.keep %.cpp
+$(UT_CACHE)/%.cpp.d: $(UT_CACHE)/.keep %.cpp | $(UT_CUSTOM_DEPS)
 	$(AT)$(MKDIR) -p $(@D) && \
 	(g++ -MM $(CXXFLAGS) $*.cpp > $@.orig 2>&1 \
 	    || (cat $@.orig | $(CCFILTER) ; $(RM) $@.orig ; false) \
@@ -312,7 +331,7 @@ $(UT_CACHE)/%.cpp.d: $(UT_CACHE)/.keep %.cpp
 ifdef HAVE_GT
 #$(UT_CACHE)/%.cc.gt.d: $(UT_CACHE)/.keep $(UT_GT)/.keep %.cc
 #$(UT_CACHE)/%.cc.gt.d: $(UT_CACHE)/.keep %.cc
-$(UT_CACHE)/%.cc.gt.d: %.cc
+$(UT_CACHE)/%.cc.gt.d: %.cc | $(UT_CUSTOM_DEPS)
 	$(AT)$(MKDIR) -p $(@D) && \
 	(g++ -MM $(CXXFLAGS) $*.cc > $@.orig 2>&1 \
 	    || (cat $@.orig | $(CCFILTER) ; $(RM) $@.orig ; false) \
@@ -324,10 +343,18 @@ ifeq (x$(V),x1)
 UT_KEEP:=1
 endif
 
-ifeq (x$(UT_KEEP),x1)
 .PRECIOUS: $(EXES)
+ifeq (x$(UT_KEEP),x1)
+RM_OR_KEEP:=true
 else
-.INTERMEDIATE: $(EXES)
+#.INTERMEDIATE: $(EXES)
+RM_OR_KEEP:=$(RM)
+endif
+
+ifeq (x$(UT_XTHROW),x1)
+XTHROW:=$(GDB) -q -ex r --args
+else
+XTHROW:=true
 endif
 
 BUILD_C_EXE=$(AT)($(CC) $(CFLAGS) $*.c $(LDFLAGS) -o $@ $(LDLIBS) > $@.build 2>&1 || (cat $@.build | $(CCFILTER) ; $(RM) $@.build ; false) && $(RM) $@.build)
@@ -342,15 +369,16 @@ BUILD_CC_EXE=$(AT)$(CXX) $(CXXFLAGS) $*.cc $(LDFLAGS) -o $@ $(LDLIBS)
 $(UT_CACHE)/%.cc.fast.exe: %.cc ; $(BUILD_CC_EXE)
 $(UT_CACHE)/%.cc.slow.exe: %.cc ; $(BUILD_CC_EXE)
 
-TEST_FAST_PASSED=$(AT)LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) ./$< $(UTO) && touch $@
+TEST_FAST_PASSED=$(AT)(export LD_LIBRARY_PATH=$(LD_LIBRARY_PATH); ./$< $(UTO) && ($(RM_OR_KEEP) $<;touch $@) || ($(XTHROW) ./$< $(UTO); false))
 $(UT_CACHE)/%.c.fast.passed: CC=$(CC_FAST)
 $(UT_CACHE)/%.c.fast.passed: CFLAGS+=-O0
 $(UT_CACHE)/%.c.fast.passed: $(UT_CACHE)/%.c.fast.exe ; $(TEST_FAST_PASSED)
 
 ifdef VG
-VG_:=$(VG) $(VGO)
+ULIMIT0:=ulimit -c 0
+VG_:=$(ULIMIT0);$(VG) $(VGO)
 endif
-TEST_SLOW_PASSED=$(AT)LD_LIBRARY_PATH=$(LD_LIBRARY_PATH) $(VG_) ./$< $(UTO) && touch $@
+TEST_SLOW_PASSED=$(AT)(export LD_LIBRARY_PATH=$(LD_LIBRARY_PATH); $(VG_) ./$< $(UTO) && ($(RM_OR_KEEP) $<;touch $@) || ($(XTHROW) ./$< $(UTO); false))
 $(UT_CACHE)/%.c.slow.passed: CC=$(CC_SLOW)
 $(UT_CACHE)/%.c.slow.passed: CFLAGS+=-g
 $(UT_CACHE)/%.c.slow.passed: $(UT_CACHE)/%.c.slow.exe ; $(TEST_SLOW_PASSED)

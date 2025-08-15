@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-RE='\(CREATE\|ATTRIB\|MOVE\|DELETE\) .*\.\(c\|cpp\|cc\|h\|py\)$'
+RE='\(CREATE\|ATTRIB\|MOVE\|DELETE\) .*\.\(c\|cpp\|cc\|h\|py\|v\)$'
 
 SCRIPTSDIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 UTROOT="$(dirname ${SCRIPTSDIR})"
