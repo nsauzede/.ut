@@ -28,11 +28,13 @@
 #include <sys/ioctl.h>  // ioctl
 #endif
 
-#define UT_VERSION "0.0.14"
+#define UT_VERSION "0.0.15"
 
 #define CTOR __attribute((constructor))
 #define TRY() (setjmp(UT.jmpbuf) == 0)
-#define THROW() do{longjmp(UT.jmpbuf, 1);}while(0)
+#define RETRY() do{if(UT.xthrow){printf("HELLO RETRY\n");if(setjmp(UT.jmpbuf) == 1){__asm__ volatile("int $3");exit(2);}}}while(0)
+//#define THROW() do{if (UT.xthrow){__asm__ volatile("int $3");exit(1);};longjmp(UT.jmpbuf, 1);}while(0)
+#define THROW() longjmp(UT.jmpbuf, 1)
 #define RED "\x1b[0;31m"
 #define BRED "\x1b[1;31m"
 #define GRN "\x1b[0;32m"
@@ -52,7 +54,7 @@
 #define DECLT(met) static struct UT_s UMET(met##_s)
 #define DECLM(met) static void UMET(met)()
 #define TESTMETHOD(met) DECLM(met); DECLT(met); DEFCTOR(met) DECLM(met)
-#define ASSERT(expr) do{if(!ut_assert(__FILE__,__LINE__,__func__,#expr,expr))return;}while(0)
+#define ASSERT(expr) do{RETRY();if(!ut_assert(__FILE__,__LINE__,__func__,#expr,expr))return;}while(0)
 #define STRINGIFY_(x) #x
 #define STRINGIFY(x) STRINGIFY_(x)
 
@@ -117,6 +119,7 @@ static struct UT_s {
     void (*ptr)();
     jmp_buf jmpbuf;
     int disabled;
+    int xthrow;
     struct UT_cap_s cap_stdout, cap_stderr;
     struct UT_s *next;
 } UT, *ut_last, *ut_curr;
@@ -147,6 +150,7 @@ void ut_cap_stop(struct UT_cap_s *cap) {
     if (cap->original_fd != -1) {
         ut_dup2(cap->original_fd, cap->fileno);
         ut_close(cap->original_fd);
+        cap->original_fd = -1;
     }
 }
 int ut_cap_bytes(struct UT_cap_s *cap) {
@@ -181,6 +185,11 @@ void ut_add(const char *file, const char *met, const char *umet, void (*ptr)(), 
 }
 int ut_assert(const char *file, int line, const char *func, const char *expr_str, int expr) {
     if (!expr) {
+        if (UT.xthrow) {
+            ut_cap_stop(&ut_curr->cap_stdout);
+            ut_cap_stop(&ut_curr->cap_stderr);
+            printf("HELLO XTHROW0\n");
+        }
         ut_curr->file = file;
         ut_curr->line = line;
         ut_curr->func = !strcmp(func, ut_curr->umet) ? ut_curr->met : func;
@@ -252,12 +261,14 @@ void ut_help(const char *prog) {
     printf("Options:\n");
     printf("    --help          This help\n");
     printf("    -s              Do not capture tests stdout/stderr\n");
+    printf("    -x              Make failed EXPECT throw exception\n");
     printf("    -v              Increase verbosity\n");
     printf("    -q              Decrease verbosity\n");
 }
 int ut_main_(int argc, char *argv[]) {
     int verbosity = 2;
     int nocap = 0;
+    int xthrow = 0;
     int arg = 1;
 
     while (arg < argc) {
@@ -270,6 +281,8 @@ int ut_main_(int argc, char *argv[]) {
             verbosity--;
         } else if (!strcmp(argv[arg], "-s")) {
             nocap = 1;
+        } else if (!strcmp(argv[arg], "-x")) {
+            xthrow = 1;
         }
         arg++;
     }
@@ -280,6 +293,7 @@ int ut_main_(int argc, char *argv[]) {
     setvbuf(stderr, NULL, _IONBF, 0);
     int ntests = 0;
     struct UT_s *ut = UT.next;
+    UT.xthrow = xthrow;
     while (ut) {
         ntests++;
         ut = ut->next;
@@ -483,6 +497,11 @@ int ut_main_(int argc, char *argv[]) {
 int ut_assert_eq_ptr(const char *file, int line, const char *func, const char *expr_str, void *lhs, void *rhs) {
     int expr = lhs == rhs;
     if (!expr) {
+        if (UT.xthrow) {
+            ut_cap_stop(&ut_curr->cap_stdout);
+            ut_cap_stop(&ut_curr->cap_stderr);
+            printf("HELLO XTHROW1\n");
+        }
         fprintf(stderr, "%s:%d: AssertionError (Pointer)\n", file, line);
         fprintf(stderr, ">\tASSERT_EQ(%s)\n", expr_str);
         fprintf(stderr, "E\tASSERT_EQ(%p, %p)\n", lhs, rhs);
@@ -493,6 +512,11 @@ int ut_assert_eq_ptr(const char *file, int line, const char *func, const char *e
 int ut_assert_neq_ptr(const char *file, int line, const char *func, const char *expr_str, void *lhs, void *rhs) {
     int expr = lhs != rhs;
     if (!expr) {
+        if (UT.xthrow) {
+            ut_cap_stop(&ut_curr->cap_stdout);
+            ut_cap_stop(&ut_curr->cap_stderr);
+            printf("HELLO XTHROW1\n");
+        }
         fprintf(stderr, "%s:%d: AssertionError (Pointer)\n", file, line);
         fprintf(stderr, ">\tASSERT_NEQ(%s)\n", expr_str);
         fprintf(stderr, "E\tASSERT_NEQ(%p, %p)\n", lhs, rhs);
@@ -503,6 +527,11 @@ int ut_assert_neq_ptr(const char *file, int line, const char *func, const char *
 int ut_assert_eq_long(const char *file, int line, const char *func, const char *expr_str, long lhs, long rhs) {
     int expr = lhs == rhs;
     if (!expr) {
+        if (UT.xthrow) {
+            ut_cap_stop(&ut_curr->cap_stdout);
+            ut_cap_stop(&ut_curr->cap_stderr);
+            printf("HELLO XTHROW1\n");
+        }
         fprintf(stderr, "%s:%d: AssertionError (Integer)\n", file, line);
         fprintf(stderr, ">\tASSERT_EQ(%s)\n", expr_str);
         fprintf(stderr, "E\tASSERT_EQ(%ld, %ld)\n", lhs, rhs);
@@ -518,6 +547,11 @@ int ut_assert_eq_str(const char *file, int line, const char *func, const char *e
         expr = !lhs && !rhs;
     }
     if (!expr) {
+        if (UT.xthrow) {
+            ut_cap_stop(&ut_curr->cap_stdout);
+            ut_cap_stop(&ut_curr->cap_stderr);
+            printf("HELLO XTHROW1\n");
+        }
         fprintf(stderr, "%s:%d: AssertionError (String)\n", file, line);
         fprintf(stderr, ">\tASSERT_EQ(%s)\n", expr_str);
         fprintf(stderr, "E\tASSERT_EQ(");
@@ -533,8 +567,8 @@ int ut_assert_eq_str(const char *file, int line, const char *func, const char *e
 }
 #endif
 #ifdef __cplusplus
-#define ASSERT_EQ_(va_args, lhs, rhs) ut_assert_eq_(__FILE__,__LINE__,__func__,va_args, lhs, rhs)
-#define ASSERT_NEQ_(va_args, lhs, rhs) ut_assert_neq_(__FILE__,__LINE__,__func__,va_args, lhs, rhs)
+#define ASSERT_EQ_(va_args, lhs, rhs) do{RETRY();ut_assert_eq_(__FILE__,__LINE__,__func__,va_args, lhs, rhs);}while(0)
+#define ASSERT_NEQ_(va_args, lhs, rhs) do{RETRY();ut_assert_neq_(__FILE__,__LINE__,__func__,va_args, lhs, rhs);}while(0)
 int ut_assert_eq_(const char *file, int line, const char *func, const char *va_args, long lhs, long rhs) { return ut_assert_eq_long(file, line, func, va_args, lhs, rhs); }
 int ut_assert_eq_(const char *file, int line, const char *func, const char *va_args, int lhs, int rhs) { return ut_assert_eq_long(file, line, func, va_args, lhs, rhs); }
 int ut_assert_eq_(const char *file, int line, const char *func, const char *va_args, const char *lhs, std::string rhs) { return ut_assert_eq_str(file, line, func, va_args, lhs, rhs.c_str()); }
@@ -543,37 +577,28 @@ int ut_assert_eq_(const char *file, int line, const char *func, const char *va_a
 int ut_assert_eq_(const char *file, int line, const char *func, const char *va_args, void* lhs, void* rhs) { return ut_assert_eq_ptr(file, line, func, va_args, lhs, rhs); }
 int ut_assert_neq_(const char *file, int line, const char *func, const char *va_args, void* lhs, void* rhs) { return ut_assert_neq_ptr(file, line, func, va_args, lhs, rhs); }
 #else
-#define ASSERT_EQ_(va_args, lhs, rhs) _Generic((lhs), \
+#define ASSERT_EQ_(va_args, lhs, rhs) do{RETRY();_Generic((lhs), \
     long: ut_assert_eq_long, \
     int: ut_assert_eq_long, \
     unsigned short: ut_assert_eq_long, \
     unsigned char: ut_assert_eq_long, \
     void*: ut_assert_eq_ptr, \
     char*: ut_assert_eq_str, \
-    const char*: ut_assert_eq_str)(__FILE__,__LINE__,__func__,va_args,lhs, rhs)
-#define ASSERT_NEQ_(va_args, lhs, rhs) _Generic((lhs), \
+    const char*: ut_assert_eq_str)(__FILE__,__LINE__,__func__,va_args,lhs, rhs);}while(0)
+#define ASSERT_NEQ_(va_args, lhs, rhs) do{RETRY();_Generic((lhs), \
     void*: ut_assert_neq_ptr, \
-    int: ut_assert_neq_ptr)(__FILE__,__LINE__,__func__,va_args,(void *)(intptr_t)lhs, (void *)(intptr_t)rhs)
+    int: ut_assert_neq_ptr)(__FILE__,__LINE__,__func__,va_args,(void *)(intptr_t)lhs, (void *)(intptr_t)rhs);}while(0)
 #endif
 #define ASSERT_EQ(...) ASSERT_EQ_(#__VA_ARGS__, __VA_ARGS__)
 //#define EXPECT_EQ(...) ASSERT_EQ(__VA_ARGS__)
 #define ASSERT_NEQ(...) ASSERT_NEQ_(#__VA_ARGS__, __VA_ARGS__)
 
-#if 0
-int ut_assert(const char *file, int line, const char *func, const char *expr_str, int expr) {
-    if (!expr) {
-        ut_curr->file = file;
-        ut_curr->line = line;
-        ut_curr->func = !strcmp(func, ut_curr->umet) ? ut_curr->met : func;
-        ut_curr->expr_str = expr_str;
-        ut_curr->expr = expr;
-        THROW();
-    }
-    return expr;
-}
-#endif
 int expect_fmt(const char *macro, const char *file, int line, const char *func, const char *expr_str, int expr, const char *fmt, ...) {
     if (!expr) {
+        if (UT.xthrow) {
+            ut_cap_stop(&ut_curr->cap_stdout);
+            ut_cap_stop(&ut_curr->cap_stderr);
+        }
         va_list args;
         va_start(args, fmt);
         printf("%s:%d:%s:%s: ", file, line, func, macro);
@@ -587,6 +612,9 @@ int expect_fmt(const char *macro, const char *file, int line, const char *func, 
         ut_curr->expr_str = expr_str;
         ut_curr->expr = expr;
         ut_curr->macro = macro;
+        if (UT.xthrow) {
+            THROW();
+        }
     }
     return expr;
 }
@@ -635,21 +663,21 @@ int expect_eq(const char *file, int line, const char *func, const char *expr_str
 #define CONCATENATE1(arg1, arg2) arg1##arg2
 
 #define EXPECT_EQ(...) CONCATENATE(EXPECT_EQ_, PP_NARG(__VA_ARGS__))(__FILE__,__LINE__,__func__,#__VA_ARGS__, __VA_ARGS__)
-#define EXPECT_EQ_2_(fi,l,fn,ex, ...) expect_eq(fi,l,fn,#__VA_ARGS__, __VA_ARGS__)
+#define EXPECT_EQ_2_(fi,l,fn,ex, ...) do{RETRY();expect_eq(fi,l,fn,#__VA_ARGS__, __VA_ARGS__);}while(0)
 #define EXPECT_EQ_2(fi,l,fn,ex, a, b) EXPECT_EQ_2_(fi,l,fn,ex, a, b)
-#define EXPECT_EQ_3(fi,l,fn,ex, a, b, fmt) expect_fmt("EXPECT_EQ",fi,l,fn,ex, (a) == (b), (fmt))
-#define EXPECT_EQ_4(fi,l,fn,ex, a, b, fmt, a1) expect_fmt("EXPECT_EQ",fi,l,fn,ex, (a) == (b), (fmt), (a1))
-#define EXPECT_EQ_5(fi,l,fn,ex, a, b, fmt, a1, a2) expect_fmt("EXPECT_EQ",fi,l,fn,ex, (a) == (b), (fmt), (a1), (a2))
-#define EXPECT_EQ_6(fi,l,fn,ex, a, b, fmt, a1, a2, a3) expect_fmt("EXPECT_EQ",fi,l,fn,ex, (a) == (b), (fmt), (a1), (a2), (a3))
+#define EXPECT_EQ_3(fi,l,fn,ex, a, b, fmt) do{RETRY();expect_fmt("EXPECT_EQ",fi,l,fn,ex, (a) == (b), (fmt));}while(0)
+#define EXPECT_EQ_4(fi,l,fn,ex, a, b, fmt, a1) do{RETRY();expect_fmt("EXPECT_EQ",fi,l,fn,ex, (a) == (b), (fmt), (a1));}while(0)
+#define EXPECT_EQ_5(fi,l,fn,ex, a, b, fmt, a1, a2) do{RETRY();expect_fmt("EXPECT_EQ",fi,l,fn,ex, (a) == (b), (fmt), (a1), (a2));}while(0)
+#define EXPECT_EQ_6(fi,l,fn,ex, a, b, fmt, a1, a2, a3) do{RETRY();expect_fmt("EXPECT_EQ",fi,l,fn,ex, (a) == (b), (fmt), (a1), (a2), (a3));}while(0)
 
 #define EXPECT(...) CONCATENATE(EXPECT_, PP_NARG(__VA_ARGS__))(__FILE__,__LINE__,__func__,#__VA_ARGS__, __VA_ARGS__)
-#define EXPECT_1_(fi,l,fn,ex, ...) expect(fi,l,fn,#__VA_ARGS__, __VA_ARGS__)
+#define EXPECT_1_(fi,l,fn,ex, ...) do{RETRY();expect(fi,l,fn,#__VA_ARGS__, __VA_ARGS__);}while(0)
 #define EXPECT_1(fi,l,fn,ex, e) EXPECT_1_(fi,l,fn,ex, e)
-#define EXPECT_2(fi,l,fn,ex, e, fmt) expect_fmt("EXPECT",fi,l,fn,ex, (e), (fmt))
-#define EXPECT_3(fi,l,fn,ex, e, fmt, a1) expect_fmt("EXPECT",fi,l,fn,ex, (e), (fmt), (a1))
-#define EXPECT_4(fi,l,fn,ex, e, fmt, a1, a2) expect_fmt("EXPECT",fi,l,fn,ex, (e), (fmt), (a1), (a2))
-#define EXPECT_5(fi,l,fn,ex, e, fmt, a1, a2, a3) expect_fmt("EXPECT",fi,l,fn,ex, (e), (fmt), (a1), (a2), (a3))
-#define EXPECT_6(fi,l,fn,ex, e, fmt, a1, a2, a3, a4) expect_fmt("EXPECT",fi,l,fn,ex, (e), (fmt), (a1), (a2), (a3), (a4))
+#define EXPECT_2(fi,l,fn,ex, e, fmt) do{RETRY();expect_fmt("EXPECT",fi,l,fn,ex, (e), (fmt));}while(0)
+#define EXPECT_3(fi,l,fn,ex, e, fmt, a1) do{RETRY();expect_fmt("EXPECT",fi,l,fn,ex, (e), (fmt), (a1));}while(0)
+#define EXPECT_4(fi,l,fn,ex, e, fmt, a1, a2) do{RETRY();expect_fmt("EXPECT",fi,l,fn,ex, (e), (fmt), (a1), (a2));}while(0)
+#define EXPECT_5(fi,l,fn,ex, e, fmt, a1, a2, a3) do{RETRY();expect_fmt("EXPECT",fi,l,fn,ex, (e), (fmt), (a1), (a2), (a3));}while(0)
+#define EXPECT_6(fi,l,fn,ex, e, fmt, a1, a2, a3, a4) do{RETRY();expect_fmt("EXPECT",fi,l,fn,ex, (e), (fmt), (a1), (a2), (a3), (a4));}while(0)
 
 #ifndef UT_NO_MAIN
 int main(int argc, char *argv[]) { return ut_main_(argc, argv); }
