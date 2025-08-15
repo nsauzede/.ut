@@ -88,9 +88,9 @@ TESTCASE(TestGildedRose)
             std::vector<Item> items = {{item, tc.days, tc.quality}};
             auto gilded_rose = GildedRose(items);
             gilded_rose.update_quality();
-            ASSERT(ASSERT_EQ(items[0].name, item));
-            ASSERT(ASSERT_EQ(items[0].quality, tc.exp_quality));
-            ASSERT(ASSERT_EQ(items[0].sell_in, tc.exp_days));
+            ASSERT_EQ(items[0].name, item);
+            ASSERT_EQ(items[0].quality, tc.exp_quality);
+            ASSERT_EQ(items[0].sell_in, tc.exp_days);
         }
     }
     TESTMETHOD(test_backstage_passes_has_special_rules) {

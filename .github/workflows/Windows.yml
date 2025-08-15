@@ -16,7 +16,7 @@ jobs:
       uses: msys2/setup-msys2@v2
       with:
         update: true
-        install: bash msys/make mingw64/mingw-w64-x86_64-gcc msys/python msys/python-pytest mingw64/mingw-w64-x86_64-clang git cmake mingw-w64-x86_64-gtest
+        install: bash msys/make mingw64/mingw-w64-x86_64-gcc msys/python msys/python-pytest msys/python-pygments mingw64/mingw-w64-x86_64-clang git cmake mingw-w64-x86_64-gtest
 
     - name: setup-tcc
       run: |
