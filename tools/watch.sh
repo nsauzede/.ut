@@ -104,7 +104,7 @@ inotifywait -q --recursive --monitor --format "%e %w%f" \
 --exclude '#' \
 --event ${evlist} ${UT_PROJ} ${UTROOT} \
 | while read changed; do
-    echo "$changed" | grep "$RE" 2>&1 > /dev/null && trytests "$changed"
+    echo "$changed" | grep "$RE" 2>&1 > /dev/null && trytests "$changed" </dev/tty >/dev/tty 2>&1
 done
 
 fi
