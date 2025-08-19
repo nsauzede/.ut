@@ -615,39 +615,45 @@ int expect_fmt(const char *macro, const char *file, int line, const char *func, 
 }
 int expect(const char *file, int line, const char *func, const char *expr_str, int expr) {
     const char *macro = "EXPECT";
-    return expect_fmt(macro, file, line, func, expr_str, expr, "\n>       %s(%s)\nE       %s(%d)\n", macro, expr_str, macro, expr);
+    return expect_fmt(macro, file, line, func, expr_str, expr, "\n>       %s(%s)\nE       %s(%d) %s\n", macro, expr_str, macro, expr, __func__);
 }
-int expect_eq_long(const char *file, int line, const char *func, const char *expr_str, long a, long b) {
+int expect_eq_long(const char *file, int line, const char *func, const char *expr_str, long a, long b, const char *msg) {
     const char *macro = "EXPECT_EQ";
     return expect_fmt(macro, file, line, func, expr_str, a == b, "\n>       %s(%s)\nE       %s(%ld, %ld)\n", macro, expr_str, macro, a, b);
 }
-int expect_eq_double(const char *file, int line, const char *func, const char *expr_str, double a, double b) {
+int expect_eq_double(const char *file, int line, const char *func, const char *expr_str, double a, double b, const char *msg) {
     const char *macro = "EXPECT_EQ";
     return expect_fmt(macro, file, line, func, expr_str, a == b, "\n>       %s(%s)\nE       %s(%.1f, %.1f)\n", macro, expr_str, macro, a, b);
 }
-int expect_eq_ptr(const char *file, int line, const char *func, const char *expr_str, void *a, void *b) {
+int expect_eq_ptr(const char *file, int line, const char *func, const char *expr_str, void *a, void *b, const char *msg) {
     const char *macro = "EXPECT_EQ";
     return expect_fmt(macro, file, line, func, expr_str, a == b, "\n>       %s(%s)\nE       %s(%p, %p)\n", macro, expr_str, macro, a, b);
 }
-int expect_eq_str(const char *file, int line, const char *func, const char *expr_str, const char *a, const char *b) {
+int expect_eq_str(const char *file, int line, const char *func, const char *expr_str, const char *a, const char *b, const char *msg) {
     const char *macro = "EXPECT_EQ";
-    return expect_fmt(macro, file, line, func, expr_str, !strcmp(a, b), "\n>       %s(%s)\nE       %s(\"%s\", \"%s\")\n", macro, expr_str, macro, a, b);
+    return expect_fmt(macro, file, line, func, expr_str, !strcmp(a, b), "\n>       %s(%s)\nE       %s(\"%s\", \"%s\")%s%s\n", macro, expr_str, macro, a, b, msg ? "\t// " : "", msg ? msg : "");
 }
-//int ut_assert_eq_(const char *file, int line, const char *func, const char *va_args, const char* lhs, const char* rhs);
 #ifdef __cplusplus
-int expect_eq(const char *file, int line, const char *func, const char *expr_str, long a, long b) { return expect_eq_long(file, line, func, expr_str, a, b); }
-int expect_eq(const char *file, int line, const char *func, const char *expr_str, int a, int b) { return expect_eq_long(file, line, func, expr_str, a, b); }
-int expect_eq(const char *file, int line, const char *func, const char *expr_str, double a, double b) { return expect_eq_double(file, line, func, expr_str, a, b); }
-int expect_eq(const char *file, int line, const char *func, const char *expr_str, void *a, void *b)  { return expect_eq_ptr(file, line, func, expr_str, a, b); }
-int expect_eq(const char *file, int line, const char *func, const char *expr_str, const char *a, const char *b)  { return expect_eq_str(file, line, func, expr_str, a, b); }
+int expect_eq(const char *file, int line, const char *func, const char *expr_str, long a, long b, const char *msg) { return expect_eq_long(file, line, func, expr_str, a, b, msg); }
+int expect_eq(const char *file, int line, const char *func, const char *expr_str, int a, int b, const char *msg) { return expect_eq_long(file, line, func, expr_str, a, b, msg); }
+int expect_eq(const char *file, int line, const char *func, const char *expr_str, double a, double b, const char *msg) { return expect_eq_double(file, line, func, expr_str, a, b, msg); }
+int expect_eq(const char *file, int line, const char *func, const char *expr_str, void *a, void *b, const char *msg)  { return expect_eq_ptr(file, line, func, expr_str, a, b, msg); }
+int expect_eq(const char *file, int line, const char *func, const char *expr_str, const char *a, const char *b, const char *msg)  { return expect_eq_str(file, line, func, expr_str, a, b, msg); }
 #else
-#define expect_eq(fi,l,fn,va_args, lhs, rhs) _Generic((lhs), \
+#define expect_eq2(fi,l,fn,va_args, lhs, rhs, ...) _Generic((lhs), \
     long: expect_eq_long, \
     int: expect_eq_long, \
     double: expect_eq_double, \
     void*: expect_eq_ptr, \
     char*: expect_eq_str, \
-    const char*: expect_eq_str)(fi,l,fn,va_args,lhs, rhs)
+    const char*: expect_eq_str)(fi,l,fn,va_args,lhs,rhs,##__VA_ARGS__)
+#define expect_eq(fi,l,fn,va_args, lhs, rhs, ...) _Generic((lhs), \
+    long: expect_eq_long, \
+    int: expect_eq_long, \
+    double: expect_eq_double, \
+    void*: expect_eq_ptr, \
+    char*: expect_eq_str, \
+    const char*: expect_eq_str)(fi,l,fn,va_args,lhs,rhs,##__VA_ARGS__)
 #endif
 
 #define PP_NARG(...) PP_NARG_(__VA_ARGS__, PP_RSEQ_N())
@@ -659,11 +665,12 @@ int expect_eq(const char *file, int line, const char *func, const char *expr_str
 
 #define EXPECT_EQ(...) CONCATENATE(EXPECT_EQ_, PP_NARG(__VA_ARGS__))(__FILE__,__LINE__,__func__,#__VA_ARGS__, __VA_ARGS__)
 #define EXPECT_EQ_2_(fi,l,fn,ex, ...) do{RETRY();expect_eq(fi,l,fn,#__VA_ARGS__, __VA_ARGS__);}while(0)
-#define EXPECT_EQ_2(fi,l,fn,ex, a, b) EXPECT_EQ_2_(fi,l,fn,ex, a, b)
-#define EXPECT_EQ_3(fi,l,fn,ex, a, b, fmt) do{RETRY();expect_fmt("EXPECT_EQ",fi,l,fn,ex, (a) == (b), (fmt));}while(0)
-#define EXPECT_EQ_4(fi,l,fn,ex, a, b, fmt, a1) do{RETRY();expect_fmt("EXPECT_EQ",fi,l,fn,ex, (a) == (b), (fmt), (a1));}while(0)
-#define EXPECT_EQ_5(fi,l,fn,ex, a, b, fmt, a1, a2) do{RETRY();expect_fmt("EXPECT_EQ",fi,l,fn,ex, (a) == (b), (fmt), (a1), (a2));}while(0)
-#define EXPECT_EQ_6(fi,l,fn,ex, a, b, fmt, a1, a2, a3) do{RETRY();expect_fmt("EXPECT_EQ",fi,l,fn,ex, (a) == (b), (fmt), (a1), (a2), (a3));}while(0)
+#define EXPECT_EQ_2(fi,l,fn,ex, a, b) EXPECT_EQ_2_(fi,l,fn,ex, a, b, 0)
+#define EXPECT_EQ_3(fi,l,fn,ex, a, b, fmt) EXPECT_EQ_2_(fi,l,fn,ex, a, b, fmt)
+//#define EXPECT_EQ_3(fi,l,fn,ex, a, b, fmt) do{RETRY();expect_fmt("EXPECT_EQ",fi,l,fn,ex, (a) == (b), (fmt));}while(0)
+//#define EXPECT_EQ_4(fi,l,fn,ex, a, b, fmt, a1) do{RETRY();expect_fmt("EXPECT_EQ",fi,l,fn,ex, (a) == (b), (fmt), (a1));}while(0)
+//#define EXPECT_EQ_5(fi,l,fn,ex, a, b, fmt, a1, a2) do{RETRY();expect_fmt("EXPECT_EQ",fi,l,fn,ex, (a) == (b), (fmt), (a1), (a2));}while(0)
+//#define EXPECT_EQ_6(fi,l,fn,ex, a, b, fmt, a1, a2, a3) do{RETRY();expect_fmt("EXPECT_EQ",fi,l,fn,ex, (a) == (b), (fmt), (a1), (a2), (a3));}while(0)
 
 #define EXPECT(...) CONCATENATE(EXPECT_, PP_NARG(__VA_ARGS__))(__FILE__,__LINE__,__func__,#__VA_ARGS__, __VA_ARGS__)
 #define EXPECT_1_(fi,l,fn,ex, ...) do{RETRY();expect(fi,l,fn,#__VA_ARGS__, __VA_ARGS__);}while(0)
