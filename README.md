@@ -10,9 +10,14 @@ The goal is to accelerate the Test Driven Development methodology.
 It supports `Linux` and `Windows` (msys2), and is primarily focused on `C/C++`, under the form of a single header file,
 and is meant to be completely independent to the user's existing build system,
 using a set a convenience tools to automate the building and running of the tests.
+Hence, it is de-facto compatible with any source (text) editor (Vi, Emacs, Midnight-commander, ...) or even any IDE (VSCode, ...).
+Functional Github action pipeline example (Linux and Windows) is provided for easy deployement.
+MacOS is not supported officially, but should not be too hard to adapt based on the Linux support.
+
 It also supports any `googletest` conformant source/test files (googletest will be automatically fetched/installed if cmake and git are available).
 
-Some tools also offer some kind of `Python` support (using `pytest` under the hood).
+Finally, it also fully supports `Python`, using `pytest` under the hood as a backend,
+offering the same fast TDD experience.
 
 ### Quick start for the impatient
 1. Clone UT at the root of your existing project:
