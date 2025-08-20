@@ -266,7 +266,7 @@ void ut_help(const char *prog) {
     printf("    -q              Decrease verbosity\n");
 }
 int ut_main_(int argc, char *argv[]) {
-    int verbosity = 2;
+    int verbosity = 3;
     int nocap = 0;
     int xthrow = 0;
     int arg = 1;
@@ -275,6 +275,8 @@ int ut_main_(int argc, char *argv[]) {
         if (!strcmp(argv[arg], "--help")) {
             ut_help(argv[0]);
             return 0;
+        } else if (!strcmp(argv[arg], "-V")) {
+            verbosity = atoi(argv[++arg]);
         } else if (!strcmp(argv[arg], "-v")) {
             verbosity++;
         } else if (!strcmp(argv[arg], "-q")) {
@@ -286,6 +288,7 @@ int ut_main_(int argc, char *argv[]) {
         }
         arg++;
     }
+//    printf("%s: verbosity=%d\n", __func__, verbosity);
     int failed = 0;
     int passed = 0;
     int width = ut_get_term_width();

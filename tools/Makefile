@@ -20,6 +20,10 @@ endif
 ifneq (x$(ORIG_UT_VERBOSE),x)
 UT_VERBOSE:=$(ORIG_UT_VERBOSE)
 endif
+ifeq (x$(UT_VERBOSE),x)
+DEFAULT_UT_VERBOSE:=3
+UT_VERBOSE:=$(DEFAULT_UT_VERBOSE)
+endif
 ifneq (x$(ORIG_UT_NOCAP),x)
 UT_NOCAP:=$(ORIG_UT_NOCAP)
 endif
@@ -29,6 +33,8 @@ endif
 ifneq (x$(ORIG_UT_XTHROW),x)
 UT_XTHROW:=$(ORIG_UT_XTHROW)
 endif
+#$(info ORIG_UT_VERBOSE=-$(ORIG_UT_VERBOSE)- UT_VERBOSE=-$(UT_VERBOSE)-)
+#$(info UT_VERBOSE=-$(UT_VERBOSE)-)
 
 MKDIR:=mkdir
 GDB?=gdb
@@ -228,8 +234,10 @@ endif
 endif
 
 UTO:=
-ifeq ("x$(UT_VERBOSE)", "x1")
-UTO+=-v
+ifeq ($(shell test $(UT_VERBOSE) -gt 0 && echo true), true)
+#ifeq ("x$(UT_VERBOSE)", "x1")
+#UTO+=-v
+UTO+=-V $(UT_VERBOSE)
 GTO:=
 else
 GTO:=--gtest_brief=1
@@ -272,6 +280,9 @@ PASSED+=$(PASSED_SLOW)
 endif
 
 all: $(UT_CUSTOM_ALL) $(PASSED)
+
+ut_verbose:
+	@echo $(UT_VERBOSE)
 
 dry-run: $(PASSED)
 

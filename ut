@@ -16,6 +16,7 @@ UTOPTNOPY="--nopy"
 UTOPTNOGT="--nogt"
 UTOPTFORCE="-f"
 UTOPTCLEAN="-c"
+UTOPTQUIET="-q"
 UTOPTVERBOSE="-v"
 UTOPTNOCAP="-s"
 UTOPTKEEP="-k"
@@ -31,12 +32,11 @@ UTTEST="test"
 UTRETEST="retest"
 UTWATCH="watch"
 
-
 UTBIN=$0
 UTARG=$1
 
 if [ "x${UTARG}" = "xcomplete" ]; then
-    echo "$UTOPTHELP $UTOPTVERSION $UTOPTFAST $UTOPTSLOW $UTOPTNOPY $UTOPTNOGT $UTOPTFORCE $UTOPTCLEAN $UTOPTKEEP $UTOPTXTHROW $UTOPTNXTHROW $UTOPTVERBOSE $UTOPTNOCAP $UTOPTPATH $UTINIT $UTHELP $UTVERSION $UTCLEAN $UTTEST $UTRETEST $UTWATCH"
+    echo "$UTOPTHELP $UTOPTVERSION $UTOPTFAST $UTOPTSLOW $UTOPTNOPY $UTOPTNOGT $UTOPTFORCE $UTOPTCLEAN $UTOPTKEEP $UTOPTXTHROW $UTOPTNXTHROW $UTOPTQUIET $UTOPTVERBOSE $UTOPTNOCAP $UTOPTPATH $UTINIT $UTHELP $UTVERSION $UTCLEAN $UTTEST $UTRETEST $UTWATCH"
     exit 0
 fi
 
@@ -47,11 +47,19 @@ UT_VERSION=`grep "define UT_VERSION" ${UTROOT}/include/ut/ut.h|cut -d'"' -f2`
 
 
 UTMAKEFILE=${UTROOT}/tools/Makefile
+#UT_VERBOSE_CUR=`make -f "${UTMAKEFILE}" ut_verbose`
 
 # Default Project path, pkg, ...
 UT_PROJ=${PWD}
 UT_PKG=`basename ${UT_PROJ}`
 
+if [ -n "${UT_VERBOSE_CUR}" ]; then
+UT_VERBOSE_DEFAULT=${UT_VERBOSE_CUR}
+else
+UT_VERBOSE_DEFAULT=3
+fi
+#echo ". UT_VERBOSE_CUR=${UT_VERBOSE_CUR}"
+#echo ". UT_VERBOSE_DEFAULT=${UT_VERBOSE_DEFAULT}"
 while true; do
     case ${UTARG} in
     ${UTOPTHELP}) :
@@ -86,8 +94,20 @@ while true; do
         UT_OPTCLEAN=1
         shift
         ;;
+    ${UTOPTQUIET}) :
+        if [ -z "${UT_VERBOSE}" ]; then
+            UT_VERBOSE=${UT_VERBOSE_DEFAULT}
+        fi
+        if [ "${UT_VERBOSE:-0}" -ge 1 ]; then
+            ((UT_VERBOSE=UT_VERBOSE-1))
+        fi
+        shift
+        ;;
     ${UTOPTVERBOSE}) :
-        UT_VERBOSE=1
+        if [ -z "${UT_VERBOSE}" ]; then
+            UT_VERBOSE=${UT_VERBOSE_DEFAULT}
+        fi
+        ((UT_VERBOSE=UT_VERBOSE+1))
         shift
         ;;
     ${UTOPTNOCAP}) :
@@ -130,7 +150,7 @@ while true; do
     UTARG=$1
 done
 
-if [ "x${V}" = "x1" -o "x${UT_VERBOSE}" = "x1" ]; then
+if [ "x${V}" = "x1" -o "${UT_VERBOSE:-0}" -ge 1 ]; then
 SILENCEMAKE=--no-print-directory
 else
 SILENCEMAKE=-s
@@ -220,6 +240,7 @@ if [ -n "${DO_HELP}" ]; then
     echo -e "      ${UTOPTNOGT}\t\tDisable googletest"
     echo -e "      ${UTOPTFORCE}\t\tForce action"
     echo -e "      ${UTOPTCLEAN}\t\tClean first before running command"
+    echo -e "      ${UTOPTQUIET}\t\tDecrease verbosity (default is ${UT_VERBOSE_DEFAULT})"
     echo -e "      ${UTOPTVERBOSE}\t\tIncrease verbosity"
     echo -e "      ${UTOPTNOCAP}\t\tDo not capture test output"
     echo -e "      ${UTOPTKEEP}\t\tKeep intermediate executables"
@@ -290,7 +311,7 @@ if [ -n "${DO_INIT}" ]; then
     if [ -n "${UT_VERBOSE}" ]; then
         echo "UT_VERBOSE:=${UT_VERBOSE}" >> ${UT_MK}
     else
-        echo "UT_VERBOSE:=0" >> ${UT_MK}
+        echo "UT_VERBOSE:=${UT_VERBOSE_DEFAULT}" >> ${UT_MK}
     fi
     if [ -n "${UT_NOCAP}" ]; then
         echo "UT_NOCAP:=${UT_NOCAP}" >> ${UT_MK}
@@ -348,6 +369,8 @@ if [ -n "${UT_OPTCLEAN}" -o -n "${DO_CLEAN}" ]; then
 fi
 
 #echo "UT_ARGS=${UT_ARGS}"
+#echo "UT_VERBOSE=${UT_VERBOSE}"
+#make -f "${UTMAKEFILE}" ut_verbose
 #echo "UT_XTHROW=${UT_XTHROW}"
 if [ -n "${DO_CLEAN}" ]; then
     # already done
