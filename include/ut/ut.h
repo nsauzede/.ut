@@ -47,6 +47,7 @@
 #define SETCLASS(_cls) UT.cls=#_cls
 #define JOIN_(x, y) x##y
 #define JOIN(x, y) JOIN_(x, y)
+#define JOIN2(a,b) #a", "#b
 #define UMET(met) JOIN(JOIN(L,__LINE__),_##met)
 #define ADDTEST(met, umet, test) do{ut_add(__FILE__, #met, STRINGIFY(umet), umet, test);}while(0)
 #define DEFCTOR(met) static void CTOR UMET(met##_ctor)(){ADDTEST(met, UMET(met), &UMET(met##_s));}
@@ -619,19 +620,19 @@ int expect(const char *file, int line, const char *func, const char *expr_str, i
 }
 int expect_eq_long(const char *file, int line, const char *func, const char *expr_str, long a, long b, const char *msg) {
     const char *macro = "EXPECT_EQ";
-    return expect_fmt(macro, file, line, func, expr_str, a == b, "\n>       %s(%s)\nE       %s(%ld, %ld)\n", macro, expr_str, macro, a, b);
+    return expect_fmt(macro, file, line, func, expr_str, a == b, "\n>       %s(%s)\nE       %s(%ld, %ld%s%s%s)\n", macro, expr_str, macro, a, b, msg ? ", \"" : "", msg ? msg : "", msg ? "\"" : "");
 }
 int expect_eq_double(const char *file, int line, const char *func, const char *expr_str, double a, double b, const char *msg) {
     const char *macro = "EXPECT_EQ";
-    return expect_fmt(macro, file, line, func, expr_str, a == b, "\n>       %s(%s)\nE       %s(%.1f, %.1f)\n", macro, expr_str, macro, a, b);
+    return expect_fmt(macro, file, line, func, expr_str, a == b, "\n>       %s(%s)\nE       %s(%.1f, %.1f%s%s%s)\n", macro, expr_str, macro, a, b, msg ? ", \"" : "", msg ? msg : "", msg ? "\"" : "");
 }
 int expect_eq_ptr(const char *file, int line, const char *func, const char *expr_str, void *a, void *b, const char *msg) {
     const char *macro = "EXPECT_EQ";
-    return expect_fmt(macro, file, line, func, expr_str, a == b, "\n>       %s(%s)\nE       %s(%p, %p)\n", macro, expr_str, macro, a, b);
+    return expect_fmt(macro, file, line, func, expr_str, a == b, "\n>       %s(%s)\nE       %s(%p, %p%s%s%s)\n", macro, expr_str, macro, a, b, msg ? ", \"" : "", msg ? msg : "", msg ? "\"" : "");
 }
 int expect_eq_str(const char *file, int line, const char *func, const char *expr_str, const char *a, const char *b, const char *msg) {
     const char *macro = "EXPECT_EQ";
-    return expect_fmt(macro, file, line, func, expr_str, !strcmp(a, b), "\n>       %s(%s)\nE       %s(\"%s\", \"%s\")%s%s\n", macro, expr_str, macro, a, b, msg ? "\t// " : "", msg ? msg : "");
+    return expect_fmt(macro, file, line, func, expr_str, !strcmp(a, b), "\n>       %s(%s)\nE       %s(\"%s\", \"%s\"%s%s%s)\n", macro, expr_str, macro, a, b, msg ? ", \"" : "", msg ? msg : "", msg ? "\"" : "");
 }
 #ifdef __cplusplus
 int expect_eq(const char *file, int line, const char *func, const char *expr_str, long a, long b, const char *msg) { return expect_eq_long(file, line, func, expr_str, a, b, msg); }
