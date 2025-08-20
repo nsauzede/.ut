@@ -9,10 +9,22 @@ UTPATH:=$(shell dirname `dirname $(CURRENT_MAKEFILE)`)
 UTSCRIPTS:=$(UTPATH)/tools
 UT_DIR?=.
 
+ORIG_UT_VERBOSE:=$(UT_VERBOSE)
+ORIG_UT_NOCAP:=$(UT_NOCAP)
+ORIG_UT_KEEP:=$(UT_KEEP)
 ORIG_UT_XTHROW:=$(UT_XTHROW)
 -include ut*.mk
 ifneq (`realpath .`, `realpath $(UT_DIR)`)
 -include $(UT_DIR)/ut*.mk
+endif
+ifneq (x$(ORIG_UT_VERBOSE),x)
+UT_VERBOSE:=$(ORIG_UT_VERBOSE)
+endif
+ifneq (x$(ORIG_UT_NOCAP),x)
+UT_NOCAP:=$(ORIG_UT_NOCAP)
+endif
+ifneq (x$(ORIG_UT_KEEP),x)
+UT_KEEP:=$(ORIG_UT_KEEP)
 endif
 ifneq (x$(ORIG_UT_XTHROW),x)
 UT_XTHROW:=$(ORIG_UT_XTHROW)
