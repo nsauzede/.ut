@@ -35,6 +35,7 @@ UT_XTHROW:=$(ORIG_UT_XTHROW)
 endif
 #$(info ORIG_UT_VERBOSE=-$(ORIG_UT_VERBOSE)- UT_VERBOSE=-$(UT_VERBOSE)-)
 #$(info UT_VERBOSE=-$(UT_VERBOSE)-)
+#$(info ORIG_UT_NOCAP=-$(ORIG_UT_NOCAP)- UT_NOCAP=-$(UT_NOCAP)-)
 
 MKDIR:=mkdir
 GDB?=gdb
@@ -244,6 +245,7 @@ GTO:=--gtest_brief=1
 endif
 ifeq ("x$(UT_NOCAP)", "x1")
 UTO+=-s
+PYTO+=-s
 endif
 ifeq ("x$(UT_XTHROW)", "x1")
 UT_SLOW:=1

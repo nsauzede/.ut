@@ -19,7 +19,7 @@ def get_local_imports(script_path, pyt_args)->(int, list):
     args = pyt_args + [filename]
     original_cwd = os.getcwd()
     try:
-        os.chdir(dirname)
+        if dirname:os.chdir(dirname)
         ret = pytest.main(args)
     finally:
         os.chdir(original_cwd)
