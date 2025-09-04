@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-RE='\(CREATE\|ATTRIB\|MOVE\|DELETE\) .*\.\(c\|cpp\|cc\|h\|py\|v\)$'
+RE='\(CREATE\|MODIFY\|MOVE\|MOVED_TO\|DELETE\) .*\.\(c\|cpp\|cc\|h\|py\|v\)$'
 
 SCRIPTSDIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 UTROOT="$(dirname ${SCRIPTSDIR})"
@@ -100,11 +100,18 @@ fi
 trytests "BOOTSTRAP <all relevant files>" && tdd_status 0
 ################################################################################
 evlist="modify,create,attrib,move,delete"
-inotifywait -q --recursive --monitor --format "%e %w%f" \
+t0="-1"
+inotifywait -q --recursive --monitor --timefmt "%S" --format "%T %e %w%f" \
 --exclude '#' \
 --event ${evlist} ${UT_PROJ} ${UTROOT} \
-| while read changed; do
-    echo "$changed" | grep "$RE" 2>&1 > /dev/null && trytests "$changed" </dev/tty >/dev/tty 2>&1
+| while read ev; do
+    t=$(echo "$ev" | cut -c1-2)
+    if [ "x$t" = "x$t0" ]; then
+        #echo -n "Ignore t=$t t0=$t0; "
+        continue
+    fi
+    changed=$(echo "$ev" | cut -c4-)
+    echo "$changed" | grep "$RE" 2>&1 > /dev/null && t0=$t && trytests "$changed - $t" </dev/tty >/dev/tty 2>&1
 done
 
 fi

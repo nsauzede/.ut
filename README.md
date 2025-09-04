@@ -10,7 +10,7 @@ The goal is to accelerate the Test Driven Development methodology.
 It supports `Linux` and `Windows` (msys2), and is primarily focused on `C/C++`, under the form of a single header file,
 and is meant to be completely independent to the user's existing build system,
 using a set a convenience tools to automate the building and running of the tests.
-Hence, it is de-facto compatible with any source (text) editor (Vi, Emacs, Midnight-commander, ...) or even any IDE (VSCode, ...).
+Hence, it is de-facto compatible with any text editor/IDE (VSCode, Vi, Emacs, Midnight-commander, ...).
 Functional Github action pipeline example (Linux and Windows) is provided for easy deployement.
 MacOS is not supported officially, but should not be too hard to adapt based on the Linux support.
 
