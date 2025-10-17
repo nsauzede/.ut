@@ -302,7 +302,7 @@ $(UT_UT):
 	$(AT)exit 1
 $(UT_CACHE)/.keep: $(UT_UT)
 	$(AT)$(MKDIR) -p $(@D) && \
-	echo -e "# Created by UT automatically.\n*" > $(@D)/.gitignore && \
+	printf "# Created by UT automatically.\n*" > $(@D)/.gitignore && \
 	echo "Signature: 8a477f597d28d172789f06886806bc55" > $(@D)/CACHEDIR.TAG && \
 	echo "# This file is a cache directory tag created by UT." >> $(@D)/CACHEDIR.TAG && \
 	echo "# For information about cache directory tags, see https://bford.info/cachedir/" >> $(@D)/CACHEDIR.TAG && \
@@ -317,7 +317,7 @@ $(UT_CACHE)/.keep: $(UT_UT)
 
 $(UT_3P)/.keep: $(UT_UT)
 	$(AT)$(MKDIR) -p $(@D) && \
-	echo -e "# Created by UT automatically.\n*" > $(@D)/.gitignore && \
+	printf "# Created by UT automatically.\n*" > $(@D)/.gitignore && \
 	echo "Signature: 8a477f597d28d172789f06886806bc55" > $(@D)/CACHEDIR.TAG && \
 	echo "# This file is a cache directory tag created by UT." >> $(@D)/CACHEDIR.TAG && \
 	echo "# For information about cache directory tags, see https://bford.info/cachedir/" >> $(@D)/CACHEDIR.TAG && \
