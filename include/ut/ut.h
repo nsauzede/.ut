@@ -50,10 +50,10 @@
 #define JOIN2(a,b) #a", "#b
 #define UMET(met) JOIN(JOIN(L,__LINE__),_##met)
 #define ADDTEST(met, umet, test) do{ut_add(__FILE__, #met, STRINGIFY(umet), umet, test);}while(0)
-#define DEFCTOR(met) static void CTOR UMET(met##_ctor)(){ADDTEST(met, UMET(met), &UMET(met##_s));}
-#define TESTCASE(cls) static void CTOR cls##_ctor() { SETCLASS(cls); }
+#define DEFCTOR(met) static void CTOR UMET(met##_ctor)(void){ADDTEST(met, UMET(met), &UMET(met##_s));}
+#define TESTCASE(cls) static void CTOR cls##_ctor(void) { SETCLASS(cls); }
 #define DECLT(met) static struct UT_s UMET(met##_s)
-#define DECLM(met) static void UMET(met)()
+#define DECLM(met) static void UMET(met)(void)
 #define TESTMETHOD(met) DECLM(met); DECLT(met); DEFCTOR(met) DECLM(met)
 #define ASSERT(expr) do{RETRY();if(!ut_assert(__FILE__,__LINE__,__func__,#expr,expr))return;}while(0)
 #define STRINGIFY_(x) #x
@@ -117,7 +117,7 @@ static struct UT_s {
     const char *file, *func, *expr_str;
     int line, expr;
     const char *macro;
-    void (*ptr)();
+    void (*ptr)(void);
     jmp_buf jmpbuf;
     int disabled;
     int xthrow;
@@ -172,7 +172,7 @@ void ut_cap_flush(struct UT_cap_s *cap) {
     }
     ut_close(cap->std_pipe[0]);
 }
-void ut_add(const char *file, const char *met, const char *umet, void (*ptr)(), struct UT_s *test) {
+void ut_add(const char *file, const char *met, const char *umet, void (*ptr)(void), struct UT_s *test) {
     if (UT.cls && strncmp(UT.cls, "Test", 4))return;
     if (!met || strncmp(met, "test", 4))return;
     if (!ut_last)ut_last = &UT;
@@ -199,7 +199,7 @@ int ut_assert(const char *file, int line, const char *func, const char *expr_str
     }
     return expr;
 }
-int ut_get_term_width() {
+int ut_get_term_width(void) {
     int width = 80;
 #if !(defined(_WIN32) && defined(__clang__))
     if (getenv("TERM")) {
