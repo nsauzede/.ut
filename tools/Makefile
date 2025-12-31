@@ -13,6 +13,7 @@ ORIG_UT_VERBOSE:=$(UT_VERBOSE)
 ORIG_UT_NOCAP:=$(UT_NOCAP)
 ORIG_UT_KEEP:=$(UT_KEEP)
 ORIG_UT_XTHROW:=$(UT_XTHROW)
+ORIG_UT_CLEAR:=$(UT_CLEAR)
 -include ut*.mk
 ifneq (`realpath .`, `realpath $(UT_DIR)`)
 -include $(UT_DIR)/ut*.mk
@@ -32,6 +33,9 @@ UT_KEEP:=$(ORIG_UT_KEEP)
 endif
 ifneq (x$(ORIG_UT_XTHROW),x)
 UT_XTHROW:=$(ORIG_UT_XTHROW)
+endif
+ifneq (x$(ORIG_UT_CLEAR),x)
+UT_CLEAR:=$(ORIG_UT_CLEAR)
 endif
 #$(info ORIG_UT_VERBOSE=-$(ORIG_UT_VERBOSE)- UT_VERBOSE=-$(UT_VERBOSE)-)
 #$(info UT_VERBOSE=-$(UT_VERBOSE)-)

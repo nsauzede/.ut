@@ -55,6 +55,9 @@ function tdd_status {
     ((step=$step+1))
 }
 function change_detected {
+if [ "${UT_CLEAR}" = "1" ]; then
+    clear
+fi
     printf "${bwhite}---------------------> "\
 "Re{build|test}ing..${nrm} [$1]\n\n"
 }
