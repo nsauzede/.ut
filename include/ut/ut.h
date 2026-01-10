@@ -554,9 +554,9 @@ int ut_assert_eq_str(const char *file, int line, const char *func, const char *e
         fprintf(stderr, "%s:%d: AssertionError (String)\n", file, line);
         fprintf(stderr, ">\tASSERT_EQ(%s)\n", expr_str);
         fprintf(stderr, "E\tASSERT_EQ(");
-        fprintf(stderr, lhs ? "\"%s\"" : "%s", lhs ? lhs : "(null)");
+        fprintf(stderr, lhs ? "\n\"%s\"" : "%s", lhs ? lhs : "(null)");
         fprintf(stderr, ", ");
-        fprintf(stderr, rhs ? "\"%s\"" : "%s", rhs ? rhs : "(null)");
+        fprintf(stderr, rhs ? "\n\"%s\"" : "%s", rhs ? rhs : "(null)");
         fprintf(stderr, ")\n");
         ut_assert(file, line, func, expr_str, expr);
     }
@@ -635,7 +635,7 @@ int expect_eq_ptr(const char *file, int line, const char *func, const char *expr
 }
 int expect_eq_str(const char *file, int line, const char *func, const char *expr_str, const char *a, const char *b, const char *msg) {
     const char *macro = "EXPECT_EQ";
-    return expect_fmt(macro, file, line, func, expr_str, !strcmp(a, b), "\n>       %s(%s)\nE       %s(\"%s\", \"%s\"%s%s%s)\n", macro, expr_str, macro, a, b, msg ? ", \"" : "", msg ? msg : "", msg ? "\"" : "");
+    return expect_fmt(macro, file, line, func, expr_str, !strcmp(a, b), "\n>       %s(%s)\nE       %s(\n\"%s\", \n\"%s\"%s%s%s)\n", macro, expr_str, macro, a, b, msg ? ", \"" : "", msg ? msg : "", msg ? "\"" : "");
 }
 #ifdef __cplusplus
 int expect_eq(const char *file, int line, const char *func, const char *expr_str, long a, long b, const char *msg) { return expect_eq_long(file, line, func, expr_str, a, b, msg); }
